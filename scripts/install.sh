@@ -106,9 +106,18 @@ fi
 varlog NODE_VERSION
 varlog XCORE_VERSION
 
+# Installing node this way just seems dirty and wrong. Really need to refactor.
 install_npm() {
   log "installing nvm and latest node"
-  sudo apt-get -q -y install node
+
+  sudo apt-get -q -y install python-software-properties
+  sudo add-apt-repository -y ppa:chris-lea/node.js
+  sudo apt-get update
+  sudo apt-get -q -y install nodejs
+
+  cdir $XCORE_DIR
+  log $(eval "node -v")
+
   sudo apt-get -q -y install curl
   sudo bash $XCORE_DIR/scripts/npm_install.sh
   wait
@@ -117,31 +126,13 @@ install_npm() {
   source ~/.bashrc
   sudo npm install -g n
   sudo n $NODE_VERSION
-
-  # if [ ! -d "/usr/local/node-install" ]; then
-  #   sudo rm -f /usr/local/bin/nodejs
-  #   sudo rm -f /usr/local/bin/node
-  #   sudo mkdir /usr/local/node-install
-  #   cdir /usr/local/node-install
-  #   git clone git://github.com/joyent/node.git
-  #   cd node
-  #   ./configure --prefix=/usr/local/bin
-  #   make install
-  #   cd ..
-  #
-  #   git clone git://github.com/isaacs/npm.git
-  #   cd npm
-  #   make install # or `make link` for bleeding edge
-  #   wait
-  #
-  #   sudo npm cache clean -f
-  #   sudo npm install -g n
-  #   sudo n $NODE_VERSION
-  # fi
 }
 
 install_packages() {
-  log "installing postgres"
+  log "Installing build-essential"
+  sudo apt-get -q -y install build-essential
+
+  log "Installing postgres"
   sudo bash $XCORE_DIR/scripts/apt.postgresql.org.sh
   echo "Running apt-get upgrade ..."
   sudo apt-get upgrade
@@ -220,31 +211,31 @@ setup_postgres() {
 # init_everythings() {
 #   log "Setting properties of admin user"
 #
-#   cdir $XT_DIR/node-datasource
+#   cdir $XCORE_DIR/node-datasource
 #
 #   cat sample_config.js | sed "s/testDatabase: \"\"/testDatabase: '$DATABASE'/" > config.js
 #   log "Configured node-datasource"
 #   log "The database is now set up..."
 #
-#   mkdir -p $XT_DIR/node-datasource/lib/private
-#   cdir $XT_DIR/node-datasource/lib/private
+#   mkdir -p $XCORE_DIR/node-datasource/lib/private
+#   cdir $XCORE_DIR/node-datasource/lib/private
 #   cat /dev/urandom | tr -dc '0-9a-zA-Z!@#$%^&*_+-'| head -c 64 > salt.txt
 #   log "Created salt"
 #   openssl genrsa -des3 -out server.key -passout pass:xtuple 1024 2>&1 | tee -a $LOG_FILE
-#   openssl rsa -in server.key -passin pass:xtuple -out key.pem -passout pass:xtuple 2>&1 | tee -a $LOG_FILE
+#   openssl rsa -in server.key -passin pass:xcore -out key.pem -passout pass:xcore 2>&1 | tee -a $LOG_FILE
 #   openssl req -batch -new -key key.pem -out server.csr -subj '/CN='$(hostname) 2>&1 | tee -a $LOG_FILE
 #   openssl x509 -req -days 365 -in server.csr -signkey key.pem -out server.crt 2>&1 | tee -a $LOG_FILE
 #   if [ $? -ne 0 ]
 #   then
-#     log "Failed to generate server certificate in $XT_DIR/node-datasource/lib/private"
+#     log "Failed to generate server certificate in $XCORE_DIR/node-datasource/lib/private"
 #     return 3
 #   fi
 #
-#   cdir $XT_DIR/test/lib
+#   cdir $XCORE_DIR/test/lib
 #   cat sample_login_data.js | sed "s/org: \'dev\'/org: \'$DATABASE\'/" > login_data.js
 #   log "Created testing login_data.js"
 #
-#   cdir $XT_DIR
+#   cdir $XCORE_DIR
 #   node scripts/build_app.js -d $DATABASE 2>&1 | tee -a $LOG_FILE
 #   sudo -u postgres psql -w $DATABASE -c "select xt.js_init(); insert into xt.usrext (usrext_usr_username, usrext_ext_id) select 'admin', ext_id from xt.ext where ext_location = '/core-extensions';" 2>&1 | tee -a $LOG_FILE
 #
@@ -256,10 +247,10 @@ setup_postgres() {
 #   if [ $USERNAME ]
 #   then
 #     log "cd node-datasource"
-#     log "node main.js"
+#     log "npm start"
 #   else
 #     log "cd /usr/local/src/xtuple/node-datasource/"
-#     log "node main.js"
+#     log "npm start"
 #   fi
 # }
 #
