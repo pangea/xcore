@@ -10,7 +10,7 @@ alias sudo='sudo env PATH=$PATH $@' # $@ sees arguments as separate words.
 
 APP_NAME='xCore'
 XCORE_VERSION=${XCORE_VERSION:-'0.0.1'}
-NODE_VERSION=${NODE_VERSION:-'0.10.29'}
+NODE_VERSION=${NODE_VERSION:-'0.10.28'}
 DATABASE=${XCORE_DATABASE:-'dev'}
 PG_VERSION=${PG_VERSION:-'postgresql-9.3'}
 PG_VERSION_NUM=(${PG_VERSION//-/ }) # Split postgres-9.3 on '-' into array
@@ -106,6 +106,18 @@ fi
 varlog NODE_VERSION
 varlog XCORE_VERSION
 
+install_npm() {
+  log "installing npm and latest node"
+  sudo apt-get -q -y install curl
+  sudo bash $XCORE_DIR/scripts/npm_install.sh
+  wait
+  sudo npm cache clean -f
+  sudo npm install -g n
+  sudo n $NODE_VERSION
+  sudo npm update -g
+  source ~/.bashrc
+}
+
 install_packages() {
   log "installing postgres"
   sudo bash $XCORE_DIR/scripts/apt.postgresql.org.sh
@@ -115,19 +127,7 @@ install_packages() {
   sudo apt-get -q -y install $PG_VERSION
   sudo apt-get -q -y install postgresql-${PG_VERSION_NUM[1]}-plv8
 
-  # if [ ! -d "/usr/local/nvm" ]; then
-  #   sudo rm -f /usr/local/bin/nvm
-  #   sudo mkdir /usr/local/nvm
-  #   sudo git clone https://github.com/xtuple/nvm.git /usr/local/nvm
-  #   sudo ln -s /usr/local/nvm/nvm_bin.sh /usr/local/bin/nvm
-  #   sudo chmod +x /usr/local/bin/nvm
-  # fi
-  # sudo nvm install $NODE_VERSION
-  # sudo nvm use $NODE_VERSION
-  # sudo nvm alias default $NODE_VERSION
-  # sudo nvm alias xtuple $NODE_VERSION
-  # log "installing npm modules..."
-  # npm install --unsafe-perm 2>&1 | tee -a $LOG_FILE
+  install_npm
 }
 
 # Use only if running from a debian package install for the first time
@@ -260,7 +260,17 @@ fi
 if [ $POSTGRES ]
 then
   log "setup_postgres()"
-  setup_postgres
+  #setup_postgres
+  if [ $? -ne 0 ]
+  then
+    exit 4
+  fi
+fi
+
+if [ $NPM_INSTALL ]
+then
+  log "install_npm()"
+  install_npm
   if [ $? -ne 0 ]
   then
     exit 4
