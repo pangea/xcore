@@ -1,0 +1,46 @@
+{
+  "author": "xCore <dev@pangeare.com>",
+  "name": "xcore",
+  "description": "xCore Business Platform",
+  "version": "0.0.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pangea/xcore.git"
+  },
+  "bugs": {
+    "url" : "http://github.com/pangea/xcore/issues",
+    "email" : "dev@pangeare.com"
+  },
+  "people fields": {
+    "author": "Christopher Rankin <crankin@pangeare.com> (http://pangeare.com/)",
+    "contributors": [
+      "xTuple <dev@xtuple.com> (http://xtuple.com/)"
+    ]
+  },
+  "dependencies": {
+    "congruence": "tjwebb/congruence",
+    "moment": "moment/moment",
+    "underscore": "jashkenas/underscore"
+  },
+  "devDependencies": {
+    "chai": "chaijs/chai",
+    "mocha": "visionmedia/mocha",
+    "require-uncache": "steida/require-uncache",
+    "html5": "aredridel/html5",
+    "zombie": "assaf/zombie"
+  },
+  "optionalDependencies": {
+    "xtuple-query": ">=1.0.2",
+    "googleapis": "google/google-api-nodejs-client"
+  },
+  "engines": {
+    "node": "0.10.x"
+  },
+  "main": "node-datasource/app.js",
+  "scripts": {
+    "preinstall": "cd node-datasource/lib/query ; npm install",
+    "test-build": "./node_modules/.bin/mocha -R spec test/build/build_app.js",
+    "test": "./node_modules/.bin/mocha -R spec test/lib/login.js test/models/* test/database/* test/extensions/* test/lib/test_runner.js",
+    "test-datasource": "./node_modules/.bin/mocha -R spec test/routes/*"
+  }
+}
