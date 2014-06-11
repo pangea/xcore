@@ -18,9 +18,8 @@
     ]
   },
   "dependencies": {
-    "congruence": "tjwebb/congruence",
-    "moment": "moment/moment",
-    "underscore": "jashkenas/underscore"
+    "underscore": "jashkenas/underscore",
+    "express": "visionmedia/express"
   },
   "devDependencies": {
     "chai": "chaijs/chai",
