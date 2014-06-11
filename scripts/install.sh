@@ -270,7 +270,7 @@ fi
 if [ $POSTGRES ]
 then
   log "setup_postgres()"
-  #setup_postgres
+  setup_postgres
   if [ $? -ne 0 ]
   then
     exit 4
