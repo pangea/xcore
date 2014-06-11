@@ -144,7 +144,7 @@ install_packages() {
   log "installing postgres"
   sudo bash $XCORE_DIR/scripts/apt.postgresql.org.sh
   echo "Running apt-get upgrade ..."
-  sudo apt-get -q -y upgrade
+  sudo apt-get upgrade
   echo "Installing Postgres ..."
   sudo apt-get -q -y install $PG_VERSION
   sudo apt-get -q -y install postgresql-${PG_VERSION_NUM[1]}-plv8
