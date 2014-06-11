@@ -1,7 +1,6 @@
 *.DS_Store
 *.sw*
 *~
-*.backup
 *.deb
 install.log
 install.log.*
