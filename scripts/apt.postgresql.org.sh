@@ -151,7 +151,7 @@ IIP9up4xwgje9LB7fMxsSkCDTHOk
 EOF
 
 echo "Running apt-get update ..."
-apt-get update
+apt-get -q -y update
 
 cat <<EOF
 
