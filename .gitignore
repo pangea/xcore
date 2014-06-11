@@ -4,3 +4,4 @@
 *.deb
 install.log
 install.log.*
+node_modules
