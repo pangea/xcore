@@ -107,15 +107,37 @@ varlog NODE_VERSION
 varlog XCORE_VERSION
 
 install_npm() {
-  log "installing npm and latest node"
+  log "installing nvm and latest node"
+  sudo apt-get -q -y install node
   sudo apt-get -q -y install curl
   sudo bash $XCORE_DIR/scripts/npm_install.sh
   wait
   sudo npm cache clean -f
-  sudo npm install -g n
-  sudo n $NODE_VERSION
   sudo npm update -g
   source ~/.bashrc
+  sudo npm install -g n
+  sudo n $NODE_VERSION
+
+  # if [ ! -d "/usr/local/node-install" ]; then
+  #   sudo rm -f /usr/local/bin/nodejs
+  #   sudo rm -f /usr/local/bin/node
+  #   sudo mkdir /usr/local/node-install
+  #   cdir /usr/local/node-install
+  #   git clone git://github.com/joyent/node.git
+  #   cd node
+  #   ./configure --prefix=/usr/local/bin
+  #   make install
+  #   cd ..
+  #
+  #   git clone git://github.com/isaacs/npm.git
+  #   cd npm
+  #   make install # or `make link` for bleeding edge
+  #   wait
+  #
+  #   sudo npm cache clean -f
+  #   sudo npm install -g n
+  #   sudo n $NODE_VERSION
+  # fi
 }
 
 install_packages() {
