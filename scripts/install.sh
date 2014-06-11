@@ -108,11 +108,11 @@ varlog XCORE_VERSION
 
 install_packages() {
   log "installing postgres"
-  # sudo bash $XCORE_DIR/scripts/apt.postgresql.org.sh
-  # echo "Running apt-get upgrade ..."
-  # sudo apt-get -y upgrade
-  # echo "Installing Postgres ..."
-  # sudo apt-get -q -y install $PG_VERSION
+  sudo bash $XCORE_DIR/scripts/apt.postgresql.org.sh
+  echo "Running apt-get upgrade ..."
+  sudo apt-get -y upgrade
+  echo "Installing Postgres ..."
+  sudo apt-get -q -y install $PG_VERSION
   sudo apt-get -q -y install postgresql-${PG_VERSION_NUM[1]}-plv8
 
   # if [ ! -d "/usr/local/nvm" ]; then
