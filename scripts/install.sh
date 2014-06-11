@@ -1,8 +1,8 @@
 #!/bin/bash
 
-echo '\nSet the following ENV variables before running this script:\n'
+echo 'Set the following ENV variables before running this script:'
 echo 'NODE_VERSION - version of node you wish to use. default:0.10.29'
-echo 'POSTGRES_VERSION - version of postgresql you wish to use. default:9.3'
+echo 'PG_VERSION - version of postgresql you wish to use. default:9.3'
 echo 'XCORE_DATABASE - the name of the database you want installed. default:dev'
 echo 'XCORE_VERSION - the version of xCore you wish to run. default:0.0.1'
 
@@ -12,6 +12,7 @@ APP_NAME='xCore'
 XCORE_VERSION=${XCORE_VERSION:-'0.0.1'}
 NODE_VERSION=${NODE_VERSION:-'0.10.29'}
 DATABASE=${XCORE_DATABASE:-'dev'}
+PG_VERSION=${PG_VERSION:-'postgresql-9.3'}
 
 RUN_DIR=$(pwd)
 
@@ -103,32 +104,36 @@ then
 fi
 
 # Print what pCore will be built using
-echo "\n"
 varlog NODE_VERSION
 varlog XCORE_VERSION
 
+install_packages() {
+  log "installing postgres"
+  sudo $XCORE_DIR/scripts/apt.postgresql.org.sh
+  echo "Running apt-get upgrade ..."
+  sudo apt-get upgrade
+  sudo apt-get install $PG_VERSION
 
-# install_packages() {
-#   log "installing debian packages..."
-#   echo 'deb http://apt.postgresql.org/pub/repos/apt/ precise-pgdg main' | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
-#   sudo wget -qO- https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
-#   sudo apt-get -qq update 2>&1 | tee -a $LOG_FILE
-#   sudo apt-get -q -y install curl build-essential libssl-dev postgresql-9.1 postgresql-server-dev-9.1 postgresql-contrib-9.1 postgresql-9.1-plv8 2>&1 | tee -a $LOG_FILE
-#
-#   if [ ! -d "/usr/local/nvm" ]; then
-#     sudo rm -f /usr/local/bin/nvm
-#     sudo mkdir /usr/local/nvm
-#     sudo git clone https://github.com/xtuple/nvm.git /usr/local/nvm
-#     sudo ln -s /usr/local/nvm/nvm_bin.sh /usr/local/bin/nvm
-#     sudo chmod +x /usr/local/bin/nvm
-#   fi
-#   sudo nvm install $NODE_VERSION
-#   sudo nvm use $NODE_VERSION
-#   sudo nvm alias default $NODE_VERSION
-#   sudo nvm alias xtuple $NODE_VERSION
-#   log "installing npm modules..."
-#   npm install --unsafe-perm 2>&1 | tee -a $LOG_FILE
-# }
+  # log "installing debian packages..."
+  # echo 'deb http://apt.postgresql.org/pub/repos/apt/ precise-pgdg main' | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+  # sudo wget -qO- https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+  # sudo apt-get -qq update 2>&1 | tee -a $LOG_FILE
+  # sudo apt-get -q -y install curl build-essential libssl-dev postgresql-9.1 postgresql-server-dev-9.1 postgresql-contrib-9.1 postgresql-9.1-plv8 2>&1 | tee -a $LOG_FILE
+
+  # if [ ! -d "/usr/local/nvm" ]; then
+  #   sudo rm -f /usr/local/bin/nvm
+  #   sudo mkdir /usr/local/nvm
+  #   sudo git clone https://github.com/xtuple/nvm.git /usr/local/nvm
+  #   sudo ln -s /usr/local/nvm/nvm_bin.sh /usr/local/bin/nvm
+  #   sudo chmod +x /usr/local/bin/nvm
+  # fi
+  # sudo nvm install $NODE_VERSION
+  # sudo nvm use $NODE_VERSION
+  # sudo nvm alias default $NODE_VERSION
+  # sudo nvm alias xtuple $NODE_VERSION
+  # log "installing npm modules..."
+  # npm install --unsafe-perm 2>&1 | tee -a $LOG_FILE
+}
 
 # Use only if running from a debian package install for the first time
 user_init() {
@@ -149,7 +154,7 @@ user_init() {
 
 # Configure postgres and initialize postgres databases
 setup_postgres() {
-
+  echo "Setting up Postgres"
 }
 # # Configure postgres and initialize postgres databases
 #
@@ -253,31 +258,31 @@ setup_postgres() {
 #   fi
 # }
 #
-# if [ $USERINIT ]
-# then
-#   user_init
-# fi
-#
-# if [ $INSTALL ]
-# then
-#   log "install_packages()"
-#   install_packages
-#   if [ $? -ne 0 ]
-#   then
-#     log "package installation failed."
-#     exit 1
-#   fi
-# fi
-#
-# if [ $POSTGRES ]
-# then
-#   log "setup_postgres()"
-#   setup_postgres
-#   if [ $? -ne 0 ]
-#   then
-#     exit 4
-#   fi
-# fi
+if [ $USERINIT ]
+then
+  user_init
+fi
+
+if [ $INSTALL ]
+then
+  log "install_packages()"
+  install_packages
+  if [ $? -ne 0 ]
+  then
+    log "package installation failed."
+    exit 1
+  fi
+fi
+
+if [ $POSTGRES ]
+then
+  log "setup_postgres()"
+  setup_postgres
+  if [ $? -ne 0 ]
+  then
+    exit 4
+  fi
+fi
 # if [ $INIT ]
 # then
 #   log "init_everythings()"
@@ -288,4 +293,4 @@ setup_postgres() {
 #   fi
 # fi
 #
-# log "All Done!"
+log "All Done!"
