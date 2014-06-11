@@ -5,7 +5,7 @@ echo 'NODE_VERSION - version of node you wish to use. default:0.10.29'
 echo 'PG_VERSION - version of postgresql you wish to use. default:9.3'
 echo 'XCORE_DATABASE - the name of the database you want installed. default:dev'
 echo 'XCORE_VERSION - the version of xCore you wish to run. default:0.0.1'
-
+echo 'XCORE_SEED - create an empty database or load with demo data.(empty|demo) default:empty'
 alias sudo='sudo env PATH=$PATH $@' # $@ sees arguments as separate words.
 
 APP_NAME='xCore'
@@ -13,16 +13,16 @@ XCORE_VERSION=${XCORE_VERSION:-'0.0.1'}
 NODE_VERSION=${NODE_VERSION:-'0.10.29'}
 DATABASE=${XCORE_DATABASE:-'dev'}
 PG_VERSION=${PG_VERSION:-'postgresql-9.3'}
-
+PG_VERSION_NUM=(${PG_VERSION//-/ }) # Split postgres-9.3 on '-' into array
+PGDIR=/etc/postgresql/${PG_VERSION_NUM[1]}/main # Use idx 1 of pg version arr.
+XCORE_SEED=${XCORE_SEED:-'empty'}
 RUN_DIR=$(pwd)
-
 LOG_FILE=$RUN_DIR/install.log
-cp $LOG_FILE $LOG_FILE.old 2>&1 &> /dev/null
-
 RUNALL=true
-BASEDIR=/usr/local/src
 LIBS_ONLY=
 XCORE_DIR=$RUN_DIR
+
+cp $LOG_FILE $LOG_FILE.old 2>&1 &> /dev/null
 
 log() {
   echo "$APP_NAME >> $@"
@@ -69,7 +69,7 @@ while getopts ":ipnhmcdt-:" opt; do
       echo "Build the full xCore Development Environment."
       echo ""
       echo "To install everything, run sudo ./scripts/install.sh"
-      echo "Everything will go in /usr/local/src/pcore"
+      echo "Everything will go in /usr/local/src/xcore"
       echo ""
       echo "  -h Print this (h)elp documentation.\t\t"
       echo "  -i (i)nstall packages.\t\t"
@@ -81,7 +81,6 @@ while getopts ":ipnhmcdt-:" opt; do
       ;;
   esac
 done
-
 
 if [ $RUNALL ]
 then
@@ -103,22 +102,18 @@ then
   return 1
 fi
 
-# Print what pCore will be built using
+# Print what xCore will be built using
 varlog NODE_VERSION
 varlog XCORE_VERSION
 
 install_packages() {
   log "installing postgres"
-  sudo $XCORE_DIR/scripts/apt.postgresql.org.sh
-  echo "Running apt-get upgrade ..."
-  sudo apt-get upgrade
-  sudo apt-get -q -y install $PG_VERSION
-
-  # log "installing debian packages..."
-  # echo 'deb http://apt.postgresql.org/pub/repos/apt/ precise-pgdg main' | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
-  # sudo wget -qO- https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
-  # sudo apt-get -qq update 2>&1 | tee -a $LOG_FILE
-  # sudo apt-get -q -y install curl build-essential libssl-dev postgresql-9.1 postgresql-server-dev-9.1 postgresql-contrib-9.1 postgresql-9.1-plv8 2>&1 | tee -a $LOG_FILE
+  # sudo bash $XCORE_DIR/scripts/apt.postgresql.org.sh
+  # echo "Running apt-get upgrade ..."
+  # sudo apt-get -y upgrade
+  # echo "Installing Postgres ..."
+  # sudo apt-get -q -y install $PG_VERSION
+  sudo apt-get -q -y install postgresql-${PG_VERSION_NUM[1]}-plv8
 
   # if [ ! -d "/usr/local/nvm" ]; then
   #   sudo rm -f /usr/local/bin/nvm
@@ -142,11 +137,11 @@ user_init() {
     echo "Run this as a normal user"
     return 1
   fi
-  echo "WARNING: This will wipe clean the xtuple folder in your home directory."
+  echo "WARNING: This will wipe clean the xcore folder in your home directory."
   echo "Hit ctrl-c to cancel."
   read PAUSE
   read -p "Github username: " USERNAME ERRS
-  rm -rf ~/xtuple
+  rm -rf ~/xcore
 
   git clone git://github.com/$USERNAME/xcore.git
   git remote add xcore git://github.com/pangea/xcore.git
@@ -154,63 +149,51 @@ user_init() {
 
 # Configure postgres and initialize postgres databases
 setup_postgres() {
-  echo "Setting up Postgres"
+  log "copying configs..."
+
+  # First we backup the original Postgres config. Next we'll have postgres
+  # listen on all IP's instead of just localhost. Install plv8
+  # custom_variable_class for the plv8 postgres module. Then finally overwrite
+  # the original config file and change ownwership to the postgres user.
+  sudo cp $PGDIR/postgresql.conf $PGDIR/postgresql.conf.default # Backup the config file
+  sudo cat $PGDIR/postgresql.conf.default | sed "s/#listen_addresses = \S*/listen_addresses = \'*\'/" | sed "s/#custom_variable_classes = ''/custom_variable_classes = 'plv8'/" | sudo tee $PGDIR/postgresql.conf > /dev/null
+  sudo chown postgres $PGDIR/postgresql.conf
+
+  # First we backup the original pg_hba config file. Next we will enable
+  # logging into postgres from outside the host machine.
+  sudo cp $PGDIR/pg_hba.conf $PGDIR/pg_hba.conf.default
+  sudo cat $PGDIR/pg_hba.conf.default | sed "s/local\s*all\s*postgres.*/local\tall\tpostgres\ttrust/" | sed "s/local\s*all\s*all.*/local\tall\tall\ttrust/" | sed "s#host\s*all\s*all\s*127\.0\.0\.1.*#host\tall\tall\t127.0.0.1/32\ttrust#" | sudo tee $PGDIR/pg_hba.conf > /dev/null
+  sudo chown postgres $PGDIR/pg_hba.conf
+
+  log "restarting postgres..."
+  sudo service postgresql restart
+
+  log "dropping existing db, if any..."
+  sudo -u postgres dropdb $DATABASE
+
+  cdir $XCORE_DIR/scripts/sql
+
+  if [ ! -f xcore-${XCORE_SEED}.backup ]
+  then
+    log "ERROR - xcore/scripts/sql/xcore-${XCORE_SEED}.backup is missing."
+    log "Pull the script then run run 'bash scripts/install.sh -pn' to finish installing this package."
+    return 3
+  fi
+
+  if [ ! -f init.sql ]
+  then
+    log "ERROR - xcore/scripts/sql/init.sql is missing."
+    log "Pull the script then run run 'bash scripts/install.sh -pn' to finish installing this package."
+    return 3
+  fi
+
+  log "Setup database"
+  sudo -u postgres psql -q -f 'init.sql' 2>&1 | tee -a $LOG_FILE
+  sudo -u postgres createdb -O admin $DATABASE 2>&1 | tee -a $LOG_FILE
+  sudo -u postgres pg_restore -d $DATABASE xcore-${XCORE_SEED}.backup 2>&1 | tee -a $LOG_FILE
+  sudo -u postgres psql $DATABASE -c "CREATE EXTENSION plv8" 2>&1 | tee -a $LOG_FILE
+  cp xcore-demo.backup $XCORE_DIR/test/lib/demo-test.backup
 }
-# # Configure postgres and initialize postgres databases
-#
-# setup_postgres() {
-#   sudo mkdir -p $BASEDIR/postgres
-#   if [ $? -ne 0 ]
-#   then
-#     return 1
-#   fi
-#
-#   PGDIR=/etc/postgresql/9.1/main
-#
-#   log "copying configs..."
-#   sudo cp $PGDIR/postgresql.conf $PGDIR/postgresql.conf.default
-#   sudo cat $PGDIR/postgresql.conf.default | sed "s/#listen_addresses = \S*/listen_addresses = \'*\'/" | sed "s/#custom_variable_classes = ''/custom_variable_classes = 'plv8'/" | sudo tee $PGDIR/postgresql.conf > /dev/null
-#   sudo chown postgres $PGDIR/postgresql.conf
-#
-#   sudo cp $PGDIR/pg_hba.conf $PGDIR/pg_hba.conf.default
-#   sudo cat $PGDIR/pg_hba.conf.default | sed "s/local\s*all\s*postgres.*/local\tall\tpostgres\ttrust/" | sed "s/local\s*all\s*all.*/local\tall\tall\ttrust/" | sed "s#host\s*all\s*all\s*127\.0\.0\.1.*#host\tall\tall\t127.0.0.1/32\ttrust#" | sudo tee $PGDIR/pg_hba.conf > /dev/null
-#   sudo chown postgres $PGDIR/pg_hba.conf
-#
-#   log "restarting postgres..."
-#   sudo service postgresql restart
-#
-#   log "dropping existing db, if any..."
-#   sudo -u postgres dropdb $DATABASE
-#
-#   log "determining latest version..."
-#
-#   cdir $BASEDIR/postgres
-#     NEWESTVERSION="4.3.0"
-#
-#   log "using: $NEWESTVERSION"
-#
-#   if [ ! -f postbooks_demo-$NEWESTVERSION.backup ]
-#   then
-#     sudo wget -qO postbooks_demo-$NEWESTVERSION.backup http://sourceforge.net/projects/postbooks/files/03%20PostBooks-databases/$NEWESTVERSION/postbooks_demo-$NEWESTVERSION.backup/download
-#     sudo wget -qO init.sql http://sourceforge.net/projects/postbooks/files/03%20PostBooks-databases/4.2.1/init.sql/download
-#     wait
-#     if [ ! -f postbooks_demo-$NEWESTVERSION.backup ]
-#     then
-#       log "Failed to download files from sourceforge."
-#       log "Download the postbooks demo database and init.sql from sourceforge into"
-#       log "$BASEDIR/postgres then run 'install_xtuple -pn' to finish installing this package."
-#       return 3
-#     fi
-#   fi
-#
-#   log "Setup database"
-#
-#   sudo -u postgres psql -q -f 'init.sql' 2>&1 | tee -a $LOG_FILE
-#   sudo -u postgres createdb -O admin $DATABASE 2>&1 | tee -a $LOG_FILE
-#   sudo -u postgres pg_restore -d $DATABASE postbooks_demo-$NEWESTVERSION.backup 2>&1 | tee -a $LOG_FILE
-#   sudo -u postgres psql $DATABASE -c "CREATE EXTENSION plv8" 2>&1 | tee -a $LOG_FILE
-#   cp postbooks_demo-$NEWESTVERSION.backup $XT_DIR/test/lib/demo-test.backup
-# }
 #
 # init_everythings() {
 #   log "Setting properties of admin user"
