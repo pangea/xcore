@@ -112,7 +112,7 @@ install_packages() {
   sudo $XCORE_DIR/scripts/apt.postgresql.org.sh
   echo "Running apt-get upgrade ..."
   sudo apt-get upgrade
-  sudo apt-get install $PG_VERSION
+  sudo apt-get install -y $PG_VERSION
 
   # log "installing debian packages..."
   # echo 'deb http://apt.postgresql.org/pub/repos/apt/ precise-pgdg main' | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
