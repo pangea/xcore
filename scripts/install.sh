@@ -115,10 +115,6 @@ install_npm() {
   sudo apt-get update
   sudo apt-get -q -y install nodejs
 
-  cdir $XCORE_DIR
-  log $(eval "node -v")
-  log $(eval "npm -v")
-
   # The following will upgrade node package manager and install specific version
   # of node
   #
