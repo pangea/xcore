@@ -5,7 +5,7 @@ echo 'NODE_VERSION - version of node you wish to use. default:0.10.29'
 echo 'PG_VERSION - version of postgresql you wish to use. default:9.3'
 echo 'XCORE_DATABASE - the name of the database you want installed. default:dev'
 echo 'XCORE_VERSION - the version of xCore you wish to run. default:0.0.1'
-echo 'XCORE_SEED - create an empty database or load with demo data.(empty|demo) default:empty'
+echo 'XCORE_SEED - create an empty database or load with demo data.(empty|demo) default:demo'
 alias sudo='sudo env PATH=$PATH $@' # $@ sees arguments as separate words.
 
 APP_NAME='xCore'
@@ -15,7 +15,7 @@ DATABASE=${XCORE_DATABASE:-'dev'}
 PG_VERSION=${PG_VERSION:-'postgresql-9.3'}
 PG_VERSION_NUM=(${PG_VERSION//-/ }) # Split postgres-9.3 on '-' into array
 PGDIR=/etc/postgresql/${PG_VERSION_NUM[1]}/main # Use idx 1 of pg version arr.
-XCORE_SEED=${XCORE_SEED:-'empty'}
+XCORE_SEED=${XCORE_SEED:-'demo'}
 RUN_DIR=$(pwd)
 LOG_FILE=$RUN_DIR/install.log
 RUNALL=true
@@ -117,15 +117,16 @@ install_npm() {
 
   cdir $XCORE_DIR
   log $(eval "node -v")
+  log $(eval "npm -v")
 
-  sudo apt-get -q -y install curl
-  sudo bash $XCORE_DIR/scripts/npm_install.sh
-  wait
-  sudo npm cache clean -f
-  sudo npm update -g
-  source ~/.bashrc
-  sudo npm install -g n
-  sudo n $NODE_VERSION
+  # The following will upgrade node package manager and install specific version
+  # of node
+  #
+  # sudo npm cache clean -f
+  # sudo npm update -g
+  # source ~/.bashrc
+  # sudo npm install -g n
+  # sudo n $NODE_VERSION
 }
 
 install_packages() {
@@ -207,53 +208,53 @@ setup_postgres() {
   sudo -u postgres psql $DATABASE -c "CREATE EXTENSION plv8" 2>&1 | tee -a $LOG_FILE
   cp xcore-demo.backup $XCORE_DIR/test/lib/demo-test.backup
 }
-#
-# init_everythings() {
-#   log "Setting properties of admin user"
-#
-#   cdir $XCORE_DIR/node-datasource
-#
-#   cat sample_config.js | sed "s/testDatabase: \"\"/testDatabase: '$DATABASE'/" > config.js
-#   log "Configured node-datasource"
-#   log "The database is now set up..."
-#
-#   mkdir -p $XCORE_DIR/node-datasource/lib/private
-#   cdir $XCORE_DIR/node-datasource/lib/private
-#   cat /dev/urandom | tr -dc '0-9a-zA-Z!@#$%^&*_+-'| head -c 64 > salt.txt
-#   log "Created salt"
-#   openssl genrsa -des3 -out server.key -passout pass:xtuple 1024 2>&1 | tee -a $LOG_FILE
-#   openssl rsa -in server.key -passin pass:xcore -out key.pem -passout pass:xcore 2>&1 | tee -a $LOG_FILE
-#   openssl req -batch -new -key key.pem -out server.csr -subj '/CN='$(hostname) 2>&1 | tee -a $LOG_FILE
-#   openssl x509 -req -days 365 -in server.csr -signkey key.pem -out server.crt 2>&1 | tee -a $LOG_FILE
-#   if [ $? -ne 0 ]
-#   then
-#     log "Failed to generate server certificate in $XCORE_DIR/node-datasource/lib/private"
-#     return 3
-#   fi
-#
-#   cdir $XCORE_DIR/test/lib
-#   cat sample_login_data.js | sed "s/org: \'dev\'/org: \'$DATABASE\'/" > login_data.js
-#   log "Created testing login_data.js"
-#
-#   cdir $XCORE_DIR
-#   node scripts/build_app.js -d $DATABASE 2>&1 | tee -a $LOG_FILE
-#   sudo -u postgres psql -w $DATABASE -c "select xt.js_init(); insert into xt.usrext (usrext_usr_username, usrext_ext_id) select 'admin', ext_id from xt.ext where ext_location = '/core-extensions';" 2>&1 | tee -a $LOG_FILE
-#
-#   log "You can login to the database and mobile client with:"
-#   log "  username: admin"
-#   log "  password: admin"
-#   log "Installation now finished."
-#   log "Run the following commands to start the datasource:"
-#   if [ $USERNAME ]
-#   then
-#     log "cd node-datasource"
-#     log "npm start"
-#   else
-#     log "cd /usr/local/src/xtuple/node-datasource/"
-#     log "npm start"
-#   fi
-# }
-#
+
+init_everythings() {
+  log "Setting properties of admin user"
+
+  cdir $XCORE_DIR/node-datasource
+
+  cat sample_config.js | sed "s/testDatabase: \"\"/testDatabase: '$DATABASE'/" > config.js
+  log "Configured node-datasource"
+  log "The database is now set up..."
+
+  mkdir -p $XCORE_DIR/node-datasource/lib/private
+  cdir $XCORE_DIR/node-datasource/lib/private
+  cat /dev/urandom | tr -dc '0-9a-zA-Z!@#$%^&*_+-'| head -c 64 > salt.txt
+  log "Created salt"
+  openssl genrsa -des3 -out server.key -passout pass:xtuple 1024 2>&1 | tee -a $LOG_FILE
+  openssl rsa -in server.key -passin pass:xcore -out key.pem -passout pass:xcore 2>&1 | tee -a $LOG_FILE
+  openssl req -batch -new -key key.pem -out server.csr -subj '/CN='$(hostname) 2>&1 | tee -a $LOG_FILE
+  openssl x509 -req -days 365 -in server.csr -signkey key.pem -out server.crt 2>&1 | tee -a $LOG_FILE
+  if [ $? -ne 0 ]
+  then
+    log "Failed to generate server certificate in $XCORE_DIR/node-datasource/lib/private"
+    return 3
+  fi
+
+  cdir $XCORE_DIR/test/lib
+  cat sample_login_data.js | sed "s/org: \'dev\'/org: \'$DATABASE\'/" > login_data.js
+  log "Created testing login_data.js"
+
+  cdir $XCORE_DIR
+  node scripts/build_app.js -d $DATABASE 2>&1 | tee -a $LOG_FILE
+  sudo -u postgres psql -w $DATABASE -c "select xt.js_init(); insert into xt.usrext (usrext_usr_username, usrext_ext_id) select 'admin', ext_id from xt.ext where ext_location = '/core-extensions';" 2>&1 | tee -a $LOG_FILE
+
+  log "You can login to the database and mobile client with:"
+  log "  username: admin"
+  log "  password: admin"
+  log "Installation now finished."
+  log "Run the following commands to start the datasource:"
+  if [ $USERNAME ]
+  then
+    log "cd node-datasource"
+    log "npm start"
+  else
+    log "cd /usr/local/src/xtuple/node-datasource/"
+    log "npm start"
+  fi
+}
+
 if [ $USERINIT ]
 then
   user_init
