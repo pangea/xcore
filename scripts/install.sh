@@ -234,9 +234,8 @@ init_everythings() {
 
   cdir $XCORE_DIR
   node scripts/build_app.js -d $DATABASE 2>&1 | tee -a $LOG_FILE
-  sudo -u postgres psql -w $DATABASE -c "select xt.js_init(); insert into xt.usrext (usrext_usr_username, usrext_ext_id) select 'admin', ext_id from xt.ext where ext_location = '/core-extensions';" 2>&1 | tee -a $LOG_FILE
 
-  log "You can login to the database and mobile client with:"
+  log "You can now login with:"
   log "  username: admin"
   log "  password: admin"
   log "Installation now finished."
@@ -286,14 +285,15 @@ then
     exit 4
   fi
 fi
-# if [ $INIT ]
-# then
-#   log "init_everythings()"
-#   init_everythings
-#   if [ $? -ne 0 ]
-#   then
-#     log "init_everythings failed"
-#   fi
-# fi
-#
+
+if [ $INIT ]
+then
+  log "init_everythings()"
+  init_everythings
+  if [ $? -ne 0 ]
+  then
+    log "init_everythings failed"
+  fi
+fi
+
 log "All Done!"

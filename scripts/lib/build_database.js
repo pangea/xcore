@@ -4,28 +4,30 @@ regexp:true, undef:true, strict:true, trailing:true, white:true */
 
 _ = require('underscore');
 
-var  async = require('async'),
-  dataSource = require('../../node-datasource/lib/ext/datasource').dataSource,
-  exec = require('child_process').exec,
-  fs = require('fs'),
-  ormInstaller = require('./orm'),
-  dictionaryBuilder = require('./build_dictionary'),
-  clientBuilder = require('./build_client'),
-  path = require('path'),
-  pg = require('pg'),
-  winston = require('winston');
+var  async            = require('async'),
+  dataSource          = require('../../node-datasource/lib/ext/datasource').dataSource,
+  exec                = require('child_process').exec,
+  fs                  = require('fs'),
+  //ormInstaller        = require('./orm'),
+  //dictionaryBuilder   = require('./build_dictionary'),
+  //clientBuilder       = require('./build_client'),
+  path                = require('path'),
+  pg                  = require('pg'),
+  winston             = require('winston');
 
 (function () {
   "use strict";
 
   var jsInit = "select xt.js_init();";
-  //
-  // There are a few ways we could actually send our query to the database
-  //
+
+  // There are a few ways we can send our query to the database.
+
+  // Send query via REST service.
   var sendToDatabaseDatasource = function (query, credsClone, options, callback) {
     dataSource.query(query, credsClone, callback);
   };
 
+  // Execute psql command locally.
   var sendToDatabasePsql = function (query, credsClone, options, callback) {
     var filename = path.join(__dirname, "temp_query_" + credsClone.database + ".sql");
     fs.writeFile(filename, query, function (err) {

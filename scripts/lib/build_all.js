@@ -6,7 +6,7 @@ var _   = require('underscore'),
   async = require('async'),
   //build_database = require("./build_database"),
   //buildDatabase = build_database.buildDatabase,
-  //buildClient = require("./build_client").buildClient,
+  buildClient = require("./build_client").buildClient,
   //dataSource = require('../../node-datasource/lib/ext/datasource').dataSource,
   exec = require('child_process').exec,
   fs = require('fs'),
@@ -55,13 +55,7 @@ var _   = require('underscore'),
           credsClone = JSON.parse(JSON.stringify(creds)),
           existsSql = "select relname from pg_class where relname = 'ext'",
           extSql = "SELECT * FROM xt.ext ORDER BY ext_load_order",
-          defaultExtensions = [
-            { ext_location: '/core-extensions', ext_name: 'crm' },
-            { ext_location: '/core-extensions', ext_name: 'project' },
-            { ext_location: '/core-extensions', ext_name: 'sales' },
-            { ext_location: '/core-extensions', ext_name: 'billing' },
-            { ext_location: '/core-extensions', ext_name: 'purchasing' }
-          ],
+
           adaptExtensions = function (err, res) {
             if (err) {
               callback(err);
@@ -73,18 +67,19 @@ var _   = require('underscore'),
                 name = row.ext_name,
                 extPath;
 
-              if (location === '/core-extensions') {
-                extPath = path.join(__dirname, "/../../enyo-client/extensions/source/", name);
-              } else if (location === '/xtuple-extensions') {
-                extPath = path.join(__dirname, "../../../xtuple-extensions/source", name);
+              if (location === '/xcore-extensions') {
+                extPath = path.join(__dirname, "../../../xcore-extensions/source", name);
               } else if (location === '/private-extensions') {
                 extPath = path.join(__dirname, "../../../private-extensions/source", name);
               }
+
               return extPath;
             });
 
+            // Add client core & orm to extensions paths.
             paths.unshift(path.join(__dirname, "../../enyo-client")); // core path
             paths.unshift(path.join(__dirname, "../../lib/orm")); // lib path
+
             callback(null, {
               extensions: paths,
               database: database,
@@ -104,8 +99,8 @@ var _   = require('underscore'),
           }
           if (res.rowCount === 0) {
             // xt.ext doesn't exist, because this is probably a brand-new DB.
-            // No problem! Give them the core extensions.
-            adaptExtensions(null, { rows: defaultExtensions });
+            // No problem! Give them empty set.
+            adaptExtensions(null, { rows: [] });
           } else {
             dataSource.query(extSql, credsClone, adaptExtensions);
           }
@@ -202,12 +197,7 @@ var _   = require('underscore'),
       buildSpecs.queryDirect = options.queryDirect;
       buildSpecs.extensions = [
         // path.join(__dirname, '../../lib/orm'),
-        // path.join(__dirname, '../../enyo-client'),
-        // path.join(__dirname, '../../enyo-client/extensions/source/crm'),
-        // path.join(__dirname, '../../enyo-client/extensions/source/project'),
-        // path.join(__dirname, '../../enyo-client/extensions/source/sales'),
-        // path.join(__dirname, '../../enyo-client/extensions/source/billing'),
-        // path.join(__dirname, '../../enyo-client/extensions/source/purchasing'),
+        // path.join(__dirname, '../../enyo-client')
       ];
 
       buildToSpec([buildSpecs], creds, callback);

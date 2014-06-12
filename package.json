@@ -19,15 +19,18 @@
   },
   "dependencies": {
     "async": "latest",
+    "bcrypt": "latest",
     "commander": "latest",
     "express": "latest",
     "json-patch": "latest",
     "morgan": "latest",
     "pg": "latest",
+    "rjson": "latest",
     "socket.io": "latest",
     "underscore": "latest",
     "underscore.string": "latest",
-    "winston": "latest"
+    "winston": "latest",
+    "xmla4js": "latest"
   },
   "devDependencies": {
     "chai": "latest",
