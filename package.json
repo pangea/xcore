@@ -18,28 +18,32 @@
     ]
   },
   "dependencies": {
-    "underscore": "jashkenas/underscore",
-    "express": "visionmedia/express"
+    "async": "latest",
+    "commander": "latest",
+    "express": "latest",
+    "json-patch": "latest",
+    "morgan": "latest",
+    "pg": "latest",
+    "socket.io": "latest",
+    "underscore": "latest",
+    "underscore.string": "latest",
+    "winston": "latest"
   },
   "devDependencies": {
-    "chai": "chaijs/chai",
-    "mocha": "visionmedia/mocha",
-    "require-uncache": "steida/require-uncache",
-    "html5": "aredridel/html5",
-    "zombie": "assaf/zombie"
+    "chai": "latest",
+    "mocha": "latest",
+    "require-uncache": "latest",
+    "html5": "latest",
+    "zombie": "latest"
   },
   "optionalDependencies": {
-    "xtuple-query": ">=1.0.2",
-    "googleapis": "google/google-api-nodejs-client"
+    "googleapis": "latest"
   },
   "engines": {
     "node": "0.10.x"
   },
   "main": "node-datasource/app.js",
   "scripts": {
-    "preinstall": "cd node-datasource/lib/query ; npm install",
-    "test-build": "./node_modules/.bin/mocha -R spec test/build/build_app.js",
-    "test": "./node_modules/.bin/mocha -R spec test/lib/login.js test/models/* test/database/* test/extensions/* test/lib/test_runner.js",
-    "test-datasource": "./node_modules/.bin/mocha -R spec test/routes/*"
+    "preinstall": "cd node-datasource/lib/query ; npm install"
   }
 }

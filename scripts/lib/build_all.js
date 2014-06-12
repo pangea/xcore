@@ -4,41 +4,52 @@ regexp:true, undef:true, strict:true, trailing:true, white:true */
 
 var _ = require('underscore'),
   async = require('async'),
-  build_database = require("./build_database"),
-  buildDatabase = build_database.buildDatabase,
-  buildClient = require("./build_client").buildClient,
-  dataSource = require('../../node-datasource/lib/ext/datasource').dataSource,
+  //build_database = require("./build_database"),
+  //buildDatabase = build_database.buildDatabase,
+  //buildClient = require("./build_client").buildClient,
+  //dataSource = require('../../node-datasource/lib/ext/datasource').dataSource,
   exec = require('child_process').exec,
   fs = require('fs'),
   path = require('path'),
-  unregister = build_database.unregister,
+  //unregister = build_database.unregister,
   winston = require('winston');
 
-/*
-  This is the point of entry for both the lightweight CLI entry-point and
-  programmatic calls to build, such as from mocha. Most of the work in this
-  file is in determining what the defaults mean. For example, if the
-  user does not specify an extension, we install the core and all registered
-  extensions, which requires a call to xt.ext.
-
-  We delegate the work of actually building the database and building the
-  client to build_database.js and build_client.js.
-*/
+/**
+ * This is the point of entry for both the lightweight CLI entry-point and
+ * programmatic calls to build, such as from mocha. Most of the work in this
+ * file is in determining what the defaults mean. For example, if the
+ * user does not specify an extension, we install the core and all registered
+ * extensions, which requires a call to xt.ext.
+ *
+ * We delegate the work of actually building the database and building the
+ * client to build_database.js and build_client.js.
+ */
 
 (function () {
   "use strict";
 
   var creds;
 
-
   exports.build = function (options, callback) {
     var buildSpecs = {},
       databases = [],
       extension,
-      //
-      // Looks in a database to see which extensions are registered, and
-      // tacks onto that list the core directories.
-      //
+      config,
+
+      // Resolve the correct path for file. "/direct/path/" vs "../../relative"
+      resolvePath = function (f) {
+        var resolvedPath;
+
+        if (f && f.substring(0, 1) === '/') {
+          resolvedPath = f;
+        } else if (f) {
+          resolvedPath = path.join(process.cwd(), f);
+        }
+
+        return resolvedPath;
+      },
+
+      // List registered extensions in database & append core dirs to list
       getRegisteredExtensions = function (database, callback) {
         var result,
           credsClone = JSON.parse(JSON.stringify(creds)),
@@ -100,20 +111,22 @@ var _ = require('underscore'),
           }
         });
       },
-      buildAll = function (specs, creds, buildAllCallback) {
+
+      // Build the application according to the buildSpecs
+      buildToSpec = function (specs, creds, buildCallback) {
         buildClient(specs, function (err, res) {
           if (err) {
-            buildAllCallback(err);
+            buildCallback(err);
             return;
           }
           buildDatabase(specs, creds, function (databaseErr, databaseRes) {
             var returnMessage;
             if (databaseErr && specs[0].wipeViews) {
-              buildAllCallback(databaseErr);
+              buildCallback(databaseErr);
               return;
 
             } else if (databaseErr) {
-              buildAllCallback("Build failed. Try wiping the views next time by running me with the -w flag.");
+              buildCallback("Build failed. Try wiping the views next time by running me with the -w flag.");
               return;
             }
             returnMessage = "\n";
@@ -123,49 +136,64 @@ var _ = require('underscore'),
                 returnMessage += '  ' + ext + '\n';
               });
             });
-            buildAllCallback(null, "Build succeeded." + returnMessage);
+            buildCallback(null, "Build succeeded." + returnMessage);
           });
         });
-      },
-      config;
+      };
 
-    // the backup path is not relative if it starts with a slash
-    if (options.config && options.config.substring(0, 1) === '/') {
-      config = require(options.config);
-    } else if (options.config) {
-      config = require(path.join(process.cwd(), options.config));
+    /**
+     * Go through the commander options and build the app accordingly.
+     *
+     *   -b, --backup [/path/to/the.backup], Location of database backup file. Must be used with the -i flag.
+     *   -c, --config [/path/to/alternate_config.js], Location of datasource config file. [config.js]
+     *   -d, --database [database name], Use specific database. [All databases in config file.]
+     *   -e, --extension [/path/to/extension], Extension to build. [Core plus all extensions registered for the database.]
+     *   -i, --initialize, Initialize database. Must be used with the -b flag.
+     *   -k, --keepsql, Do not delete the temporary sql files that represent the payload of the build.
+     *   -q, --querydirect, Query the database directly, without delegating to psql.
+     *   -u, --unregister, Unregister an extension.
+     *   -w, --wipeviews, Drop the views and the orm registrations pre-emptively.
+     *   -y, --clientonly, Only rebuild the client.
+     *   -z, --databaseonly', Only rebuild the database.
+     */
+
+    // Load the application configuration config.js.
+    var resolvedPath = resolvePath(options.config);
+    if (resolvedPath) {
+      config = require(resolvedPath);
     } else {
       config = require(path.join(__dirname, "../../node-datasource/config.js"));
     }
+
+    // Set Database Credentials
     creds = config.databaseServer;
     creds.host = creds.hostname; // adapt our lingo to node-postgres lingo
     creds.username = creds.user; // adapt our lingo to orm installer lingo
 
+    // Build all databases in node-datasource/config.js unless the user set.
     if (options.database) {
-      // the user has specified a particular database
       databases.push(options.database);
     } else {
-      // build all the databases in node-datasource/config.js
       databases = config.datasource.databases;
     }
 
+    // The user should set both clientOnly & databaseOnly flags. Warn them!
     if (options.clientOnly && options.databaseOnly) {
-      // This request doesn't make any sense.
-      callback("Make up your mind.");
+      callback("You set both clientOnly & databaseOnly flags. Use only one.");
+    }
 
-    } else if (options.initialize &&
+    // Initialize the database. This is serious business, and we only do it if
+    // the user does all the arguments correctly. Must be on one database only,
+    // with no extensions, with the initialize flag, and with a backup file.
+    if (
+        options.initialize &&
         options.backup &&
         options.database &&
-        !options.extension) {
-      // Initialize the database. This is serious business, and we only do it if
-      // the user does all the arguments correctly. It must be on one database only,
-      // with no extensions, with the initialize flag, and with a backup file.
+        !options.extension
+    ) {
 
       buildSpecs.database = options.database;
-      // the backup path is not relative if it starts with a slash
-      buildSpecs.backup = options.backup.substring(0, 1) === '/' ?
-        options.backup :
-        path.join(process.cwd(), options.backup);
+      buildSpecs.backup = resolvePath(options.backup);
       buildSpecs.initialize = true;
       buildSpecs.keepSql = options.keepSql;
       buildSpecs.wipeViews = options.wipeViews;
@@ -173,29 +201,32 @@ var _ = require('underscore'),
       buildSpecs.databaseOnly = options.databaseOnly;
       buildSpecs.queryDirect = options.queryDirect;
       buildSpecs.extensions = [
-        path.join(__dirname, '../../lib/orm'),
-        path.join(__dirname, '../../enyo-client'),
-        path.join(__dirname, '../../enyo-client/extensions/source/crm'),
-        path.join(__dirname, '../../enyo-client/extensions/source/project'),
-        path.join(__dirname, '../../enyo-client/extensions/source/sales'),
-        path.join(__dirname, '../../enyo-client/extensions/source/billing'),
-        path.join(__dirname, '../../enyo-client/extensions/source/purchasing'),
+        // path.join(__dirname, '../../lib/orm'),
+        // path.join(__dirname, '../../enyo-client'),
+        // path.join(__dirname, '../../enyo-client/extensions/source/crm'),
+        // path.join(__dirname, '../../enyo-client/extensions/source/project'),
+        // path.join(__dirname, '../../enyo-client/extensions/source/sales'),
+        // path.join(__dirname, '../../enyo-client/extensions/source/billing'),
+        // path.join(__dirname, '../../enyo-client/extensions/source/purchasing'),
       ];
-      buildAll([buildSpecs], creds, callback);
 
-    } else if (options.initialize || options.backup) {
-      // The user has not been sufficiently serious.
-      callback("If you want to initialize the database, you must specifify " +
-        " a database, and use no extensions, and use both the init and the backup flags");
 
-    } else if (options.extension) {
-      // the user has specified an extension to build or unregister
-      // extensions are assumed to be specified relative to the cwd
+      buildToSpec([buildSpecs], creds, callback);
+    }
+
+    // Alert the user they must also specify a database.
+    else if (options.initialize || options.backup) {
+      callback(
+        "You want to initialize the database with a backup but you didn't " +
+        "tell us which database to use. Specifiy the database with the -d flag."
+      );
+
+    }
+
+    // The user has specified an extension to build or unregister.
+    else if (options.extension) {
       buildSpecs = _.map(databases, function (database) {
-        // the extension is not relative if it starts with a slash
-        var extension = options.extension.substring(0, 1) === '/' ?
-          options.extension :
-          path.join(process.cwd(), options.extension);
+        var extension = resolvePath(options.extension);
         return {
           database: database,
           keepSql: options.keepSql,
@@ -211,15 +242,16 @@ var _ = require('underscore'),
         unregister(buildSpecs, creds, callback);
       } else {
         // synchronous build
-        buildAll(buildSpecs, creds, callback);
+        buildToSpec(buildSpecs, creds, callback);
       }
-    } else {
-      // build all registered extensions for the database
+    }
+
+    // Build all registered extensions for the database
+    else {
       async.map(databases, getRegisteredExtensions, function (err, results) {
         // asynchronous...
-        buildAll(results, creds, callback);
+        buildToSpec(results, creds, callback);
       });
     }
   };
 }());
-
