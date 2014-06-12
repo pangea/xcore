@@ -2,7 +2,7 @@
 regexp:true, undef:true, strict:true, trailing:true, white:true */
 /*global X:true, Backbone:true, _:true, XM:true, XT:true*/
 
-var _ = require('underscore'),
+var _   = require('underscore'),
   async = require('async'),
   //build_database = require("./build_database"),
   //buildDatabase = build_database.buildDatabase,
@@ -209,7 +209,6 @@ var _ = require('underscore'),
         // path.join(__dirname, '../../enyo-client/extensions/source/billing'),
         // path.join(__dirname, '../../enyo-client/extensions/source/purchasing'),
       ];
-
 
       buildToSpec([buildSpecs], creds, callback);
     }
