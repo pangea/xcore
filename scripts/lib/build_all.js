@@ -76,8 +76,7 @@ var _              = require('underscore'),
               return extPath;
             });
 
-            // Add client core & orm to extensions paths.
-            paths.unshift(path.join(__dirname, "../../enyo-client")); // core path
+            // Add orm to extensions paths.
             paths.unshift(path.join(__dirname, "../../lib/orm")); // lib path
 
             callback(null, {

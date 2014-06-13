@@ -17,7 +17,6 @@ var  async            = require('async'),
   */
   //dictionaryBuilder   = require('./build_dictionary'),
 
-  clientBuilder       = require('./build_client'),
   path                = require('path'),
   pg                  = require('pg'),
   winston             = require('winston');
@@ -176,9 +175,6 @@ var  async            = require('async'),
         // Deal with directory structure quirks
         var isLibOrm         = extension.indexOf("lib/orm") >= 0,
 
-          isApplicationCore  = extension.indexOf("enyo-client") >= 0 &&
-            extension.indexOf("extension") < 0,
-
           isPublicExtension  = extension.indexOf("xcore-extensions") >= 0,
 
           isPrivateExtension = extension.indexOf("private-extensions") >= 0,
@@ -294,7 +290,7 @@ var  async            = require('async'),
               return memo + script;
             }, "");
 
-            if (!isLibOrm && !isApplicationCore) {
+            if (!isLibOrm) {
               // register extension and dependencies
               extensionSql = 'do $$ plv8.elog(NOTICE, "About to register extension ' +
                 extensionName + '"); $$ language plv8;\n' + extensionSql;
@@ -315,10 +311,10 @@ var  async            = require('async'),
               extensionSql = jsInit + extensionSql;
             }
 
-            if (isApplicationCore && spec.wipeViews) {
+            if (spec.wipeViews) {
               // If we want to pre-emptively wipe out the views, the best place to do it
               // is at the start of the core application code
-              fs.readFile(path.join(__dirname, "../../enyo-client/database/source/delete_system_orms.sql"),
+              fs.readFile(path.join(__dirname, "../sql/delete_system_orms.sql"),
                   function (err, wipeSql) {
                 if (err) {
                   extensionCallback(err);
@@ -371,16 +367,6 @@ var  async            = require('async'),
         }
       };
 
-      // We also need to get the sql that represents the queries to put the
-      // client source in the database.
-      var getClientSql = function (extension, callback) {
-        if (spec.databaseOnly) {
-          callback(null, "");
-          return;
-        }
-        clientBuilder.getClientSql(extension, callback);
-      };
-
       /**
         * The sql for each extension comprises the sql in the the source directory
         * with the orm sql tacked on to the end. Note that an alternate methodology
@@ -407,9 +393,6 @@ var  async            = require('async'),
             // the client needs jsInit and might not have it by now
             callback(null, jsInit);
           },
-          function (callback) {
-            getClientSql(extension, callback);
-          }
         ], function (err, results) {
           masterCallback(err, _.reduce(results, function (memo, sql) {
             return memo + sql;
@@ -511,14 +494,14 @@ var  async            = require('async'),
       }
       winston.info("Success installing all scripts.");
       winston.info("Cleaning up.");
-      clientBuilder.cleanup(specs, function (err) {
-        if (masterCallback) {
-          masterCallback(err, res);
-        }
-      });
     });
   };
 
+  /** TODO: Look into the query below. I don't think we need the xt.clientcode
+    * bits but I'm also not quite sure if that part is needed. My gut tells me
+    * since we're moving all "core-extension" code into actual extensions
+    * that peice of the db is obsolete.
+  */
   // Another option: unregister the extension
   exports.unregister = function (specs, creds, masterCallback) {
     var extension = path.basename(specs[0].extensions[0]),

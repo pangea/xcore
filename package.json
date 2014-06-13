@@ -20,11 +20,14 @@
   "dependencies": {
     "async": "latest",
     "bcrypt": "latest",
+    "colors": "latest",
     "commander": "latest",
     "express": "latest",
+    "googleapis": "latest",
     "json-patch": "latest",
     "morgan": "latest",
     "pg": "latest",
+    "rimraf": "latest",
     "rjson": "latest",
     "socket.io": "latest",
     "underscore": "latest",
@@ -40,7 +43,6 @@
     "zombie": "latest"
   },
   "optionalDependencies": {
-    "googleapis": "latest"
   },
   "engines": {
     "node": "0.10.x"

@@ -126,6 +126,12 @@ install_npm() {
 }
 
 install_packages() {
+  log "Installing screen"
+  sudo apt-get -q -y install screen
+
+  log "Installing vim"
+  sudo apt-get -q -y install vim
+
   log "Installing build-essential"
   sudo apt-get -q -y install build-essential
 
@@ -296,4 +302,5 @@ then
   fi
 fi
 
-log "All Done!"
+bash $XCORE_DIR/scripts/apt.postgresql.org.sh
+log "All done! Now run \"source ~/.bashrc\" to get access to scripts."
