@@ -2,17 +2,17 @@
 regexp:true, undef:true, strict:true, trailing:true, white:true */
 /*global X:true, Backbone:true, _:true, XM:true, XT:true*/
 
-var _   = require('underscore'),
-  async = require('async'),
-  //build_database = require("./build_database"),
-  //buildDatabase = build_database.buildDatabase,
-  buildClient = require("./build_client").buildClient,
-  //dataSource = require('../../node-datasource/lib/ext/datasource').dataSource,
-  exec = require('child_process').exec,
-  fs = require('fs'),
-  path = require('path'),
-  //unregister = build_database.unregister,
-  winston = require('winston');
+var _              = require('underscore'),
+  async            = require('async'),
+  build_database   = require("./build_database"),
+  buildDatabase    = build_database.buildDatabase,
+  buildClient      = require("./build_client").buildClient,
+  dataSource       = require('../../node-datasource/lib/ext/datasource').dataSource,
+  exec             = require('child_process').exec,
+  fs               = require('fs'),
+  path             = require('path'),
+  unregister       = build_database.unregister,
+  winston          = require('winston');
 
 /**
  * This is the point of entry for both the lightweight CLI entry-point and

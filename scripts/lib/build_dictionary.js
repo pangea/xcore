@@ -9,11 +9,12 @@ if (typeof XT === 'undefined') {
 (function () {
   "use strict";
 
-  var _ = require("underscore"),
-    async = require("async"),
-    fs = require("fs"),
-    locale = require("../../lib/tools/source/locale"),
-    path = require("path"),
+  var _      = require("underscore"),
+    async    = require("async"),
+    fs       = require("fs"),
+    locale   = require("../../lib/tools/source/locale"),
+    path     = require("path"),
+
     createQuery = function (strings, context, language) {
       return "select xt.set_dictionary($$%@$$, '%@', '%@');"
         .f(JSON.stringify(strings),
@@ -69,21 +70,22 @@ if (typeof XT === 'undefined') {
   };
 
 
-  //
-  // The below code supports importing and exporting of dictionaries.
-  // This functionality can be accessed through the command line via
-  // the ./scripts/export_database.js and ./scripts/import_database.js
-  // files.
-  //
-
+  /**
+    * The below code supports importing and exporting of dictionaries.
+    * This functionality can be accessed through the command line via
+    * the ./scripts/export_database.js and ./scripts/import_database.js
+    * files.
+  */
   var dataSource = require('../../node-datasource/lib/ext/datasource').dataSource;
   var querystring = require("querystring");
   var request = require("request");
 
-  // Ask Google
-  // note that if we haven't been given an API key then the control flow
-  // will still come through here, but we'll just return the empty string
-  // synchronously.
+  /**
+    * Ask Google
+    * note that if we haven't been given an API key then the control flow
+    * will still come through here, but we'll just return the empty string
+    * synchronously.
+  */
   var autoTranslate = function (text, apiKey, destinationLang, callback) {
     if (!apiKey || !destinationLang || !text) {
       // the user doesn't want to autotranslate
@@ -126,12 +128,12 @@ if (typeof XT === 'undefined') {
 
   };
 
-  //
-  // Group similar english and foreign rows together
-  // This will help us generate a dictionary file if there's
-  // already a partway- or fully- implemented translation already
-  // sitting in the database.
-  //
+  /**
+    * Group similar english and foreign rows together
+    * This will help us generate a dictionary file if there's
+    * already a partway- or fully- implemented translation already
+    * sitting in the database.
+  */
   var marryLists = function (list) {
     var englishList = _.filter(list, function (row) {
       return row.dict_language_name === "en_US";
@@ -152,11 +154,11 @@ if (typeof XT === 'undefined') {
   };
 
   /**
-    @param {String} database. The database name, such as "dev"
-    @param {String} apiKey. Your Google Translate API key. Leave blank for no autotranslation
-    @param {String} destinationLang. In form "es_MX".
-    @param {Function} masterCallback
-   */
+    * @param {String} database. The database name, such as "dev"
+    * @param {String} apiKey. Your Google Translate API key. Leave blank for no autotranslation
+    * @param {String} destinationLang. In form "es_MX".
+    * @param {Function} masterCallback
+  */
   exports.exportEnglish = function (database, apiKey, destinationLang, masterCallback) {
     var creds = require("../../node-datasource/config").databaseServer,
       sql = "select dict_strings, dict_is_database, dict_is_framework, " +
@@ -232,9 +234,7 @@ if (typeof XT === 'undefined') {
     });
   };
 
-  /**
-    Takes a dictionary definition file and inserts the data into the database
-   */
+  // Takes a dictionary definition file and inserts the data into the database
   exports.importDictionary = function (database, filename, masterCallback) {
     var creds = require("../../node-datasource/config").databaseServer;
     creds.database = database;

@@ -24,15 +24,16 @@ regexp:true, undef:true, strict:true, trailing:true, white:true */
       return "do $$ plv8.elog(NOTICE, '%@'); $$ language plv8;\n".f(string);
     },
     submit,
-    /*
-      The clearing sql call: we get into trouble when there are orms "registered"
-      with a row in the xt.orm table, but without an actual view defined. This
-      happens if some other trigger cascade-deletes a view. Generally speaking
-      these triggers don't know to delete the related xt.orm row. Because we
-      frequently use the presence of a row as a proxy for the presence of the
-      view, it's very dangerous if these fall out of sync. This sql call
-      erases any xt.orm row that has no view. Assumption: the views will always
-      be in the xm namespace.
+
+    /**
+      * The clearing sql call: we get into trouble when there are orms "registered"
+      * with a row in the xt.orm table, but without an actual view defined. This
+      * happens if some other trigger cascade-deletes a view. Generally speaking
+      * these triggers don't know to delete the related xt.orm row. Because we
+      * frequently use the presence of a row as a proxy for the presence of the
+      * view, it's very dangerous if these fall out of sync. This sql call
+      * erases any xt.orm row that has no view. Assumption: the views will always
+      * be in the xm namespace.
     */
     ormSql = "delete from xt.orm  " +
       "where orm_id in ( " +
@@ -47,12 +48,12 @@ regexp:true, undef:true, strict:true, trailing:true, white:true */
       ");";
 
   // still required for the X functions
-  require('../../node-datasource/xt/foundation/foundation');
+  require('../../node-datasource/lib/xt/foundation/foundation');
 
   /**
-    Prepares the orm for insertion into the database by cleaning out all the junk
-    that we attached to it for the sake of these calculations.
-   */
+    * Prepares the orm for insertion into the database by cleaning out all the junk
+    * that we attached to it for the sake of these calculations.
+  */
   cleanse = function (orm) {
     var ret = _.clone(orm);
     delete ret.undefinedDependencies;
@@ -70,9 +71,7 @@ regexp:true, undef:true, strict:true, trailing:true, white:true */
     return ret;
   };
 
-  /**
-    Here is the function that actually installs the ORM
-   */
+  // Here is the function that actually installs the ORM
   submit = function (data, orm, queue, ack, isExtension) {
     var extensions, context, extensionList = [], namespace, type;
     context = orm.context;
@@ -129,24 +128,27 @@ regexp:true, undef:true, strict:true, trailing:true, white:true */
 
 
   /**
-    Iterates recursively down the queue of orms to install.
-    Initially called with a queue in no particular order.
-    However, we do know the dependencies of each orm.
-
-    @param data
-    @param data.installed {Array} Array of ORMs (as JSON) that have already been installed
-    @param ack {Function} callback function to be eventually called to return out of this
-      whole installer
-   */
+    * Iterates recursively down the queue of orms to install.
+    * Initially called with a queue in no particular order.
+    * However, we do know the dependencies of each orm.
+    *
+    * @param data
+    * @param data.installed {Array} Array of ORMs (as JSON) that have already been installed
+    * @param ack {Function} callback function to be eventually called to return out of this
+    * whole installer
+  */
   installQueue = function (data, ack, queue) {
     var installed = data.installed,
       orms = data.orms,
       orm, dependencies = [];
 
     if (!queue || queue.length === 0) {
-      // this is the actual callback! The first arg is an error, which is null if
-      // we've made it this far. The second arg is an array of all the orm names
-      // that have been installed.
+
+      /**
+        * This is the actual callback! The first arg is an error, which is null if
+        * we've made it this far. The second arg is an array of all the orm names
+        * that have been installed.
+      */
       return ack(null, {
         query: ormSql,
         orms: _.map(data.installed, function (orm) {
@@ -162,9 +164,8 @@ regexp:true, undef:true, strict:true, trailing:true, white:true */
     if (installed.indexOf(orm) !== -1) {
       return installQueue.call(this, data, ack, queue);
     }
-    //
+
     // Dependencies of this orm need to be installed before this orm.
-    //
     if (orm.dependencies) {
       _.each(orm.dependencies, function (dependency) {
         var d = orms[dependency.nameSpace][dependency.type];
@@ -177,7 +178,7 @@ regexp:true, undef:true, strict:true, trailing:true, white:true */
         dependencies.push(orm);
         dependencies = dependencies.concat(queue);
         return installQueue.call(this, data, ack, dependencies);
-        // do NOT install this orm right now! We'll get to it when the time is right.
+        // Do NOT install this orm right now! We'll get to it when the time is right.
       }
     }
 
@@ -185,20 +186,18 @@ regexp:true, undef:true, strict:true, trailing:true, white:true */
   };
 
   /**
-    Parse a json file and return the json.
-    @param {String} path
-
-    @returns {Object}
-   */
+    * Parse a json file and return the json.
+    * @param {String} path
+    *
+    * @returns {Object}
+  */
   parseFile = function (path) {
     try {
       return X.json(fs.readFileSync(path, "utf8"), true);
     } catch (err) { return {isError: true, message: err.message, file: path}; }
   };
 
-  /**
-    Recurse into the file structure to parse the json files.
-   */
+  // Recurse into the file structure to parse the json files.
   dive = function (path, root) {
     var files = X.directoryFiles(path, {fullPath: true}),
       stat,
@@ -234,9 +233,7 @@ regexp:true, undef:true, strict:true, trailing:true, white:true */
     }
   };
 
-  /**
-    Adds a dependencies array to the orm.
-   */
+  // Adds a dependencies array to the orm.
   dependenciesFor = function (data, orm, dependencies) {
     var properties, extensions, namespace, orms, dep;
     dependencies = dependencies ? dependencies : orm.dependencies ? orm.dependencies : (orm.dependencies = []);
@@ -262,9 +259,7 @@ regexp:true, undef:true, strict:true, trailing:true, white:true */
     });
   };
 
-  /**
-    Not sure what this does.
-   */
+  // Not sure what this does.
   checkDependencies = function (data, orm) {
     var enabled = true,
       dependencies = orm.dependencies,
@@ -294,9 +289,7 @@ regexp:true, undef:true, strict:true, trailing:true, white:true */
     return enabled;
   };
 
-  /**
-    For each ORM, calculates that ORMs dependencies
-   */
+  // For each ORM, calculates that ORMs dependencies
   calculateDependencies = function (data) {
     var orms = data.orms;
     _.each(orms, function (namespace) {
@@ -315,11 +308,11 @@ regexp:true, undef:true, strict:true, trailing:true, white:true */
   };
 
   /**
-    Checks to see if the orm is already installed, using the global
-    existing variable. Note that existing is populated from xt.orm,
-    and assumes that xt.orm is in sync with the actual views that
-    are created from the orm records.
-   */
+    * Checks to see if the orm is already installed, using the global
+    * existing variable. Note that existing is populated from xt.orm,
+    * and assumes that xt.orm is in sync with the actual views that
+    * are created from the orm records.
+  */
   findExisting = function (nameSpace, type) {
     return _.find(existing, function (orm) {
       return orm.namespace === nameSpace && orm.type === type;
@@ -344,10 +337,10 @@ regexp:true, undef:true, strict:true, trailing:true, white:true */
 
 
   /**
-    Parses the orms from their files.
-    Also looks at all the orms currently "registered" in the
-    the XT.Orm table and calculates dependencies
-   */
+    * Parses the orms from their files.
+    * Also looks at all the orms currently "registered" in the
+    * the XT.Orm table and calculates dependencies
+  */
   refresh = function (data, options, ack) {
     options = options || {};
     if (typeof options === 'function') { ack = options; }
@@ -387,8 +380,10 @@ regexp:true, undef:true, strict:true, trailing:true, white:true */
       });
     });
 
-    // the pre-existing ORMs are passed in to us from whoever calls the ORM installer
-    // This is necessary to keep the ORM installer write-only.
+    /**
+      * The pre-existing ORMs are passed in to us from whoever calls the ORM
+      * installer. This is necessary to keep the ORM installer write-only.
+    */
     existing = options.orms ? options.orms : [];
 
     // organize and associate the extensions
@@ -401,8 +396,10 @@ regexp:true, undef:true, strict:true, trailing:true, white:true */
           type = ext.type;
           try {
             if (!orms[ns]) {
-              // prevents a bug whereby a module with only "extensions" and no "models"
-              // would get ignored entirely by the orm installer
+              /**
+                * Prevents a bug whereby a module with only "extensions" and no
+                * "models" would get ignored entirely by the orm installer.
+              */
               orms[ns] = {};
             }
             orm = orms[ns][type];
@@ -430,9 +427,7 @@ regexp:true, undef:true, strict:true, trailing:true, white:true */
   };
 
 
-  /**
-    Entry point for installer. Chains together call to select, then refresh, then install.
-   */
+  // Entry point for installer. Chains call to select, then refresh, then install.
   exports.run = runOrmInstaller = function (path, options, callback) {
     var data = {};
     options = options || {};

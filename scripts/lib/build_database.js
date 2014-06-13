@@ -8,9 +8,16 @@ var  async            = require('async'),
   dataSource          = require('../../node-datasource/lib/ext/datasource').dataSource,
   exec                = require('child_process').exec,
   fs                  = require('fs'),
-  //ormInstaller        = require('./orm'),
+  ormInstaller        = require('./orm'),
+
+  /**
+    * TODO - Put localization support back in once we figure out how it works.
+    * And a proper directory structure for it. You'll also need to uncomment the
+    * function that uses dictionaryBuilder below.
+  */
   //dictionaryBuilder   = require('./build_dictionary'),
-  //clientBuilder       = require('./build_client'),
+
+  clientBuilder       = require('./build_client'),
   path                = require('path'),
   pg                  = require('pg'),
   winston             = require('winston');
@@ -65,14 +72,16 @@ var  async            = require('async'),
     });
   };
 
-  //
-  // Step 0 (optional, triggered by flags), wipe out the database
-  // and load it from scratch using pg_restore something.backup
-  //
+  /**
+    * Step 0 (optional, triggered by flags), wipe out the database
+    * and load it from scratch using pg_restore something.backup
+  */
   var initDatabase = function (spec, creds, callback) {
     var databaseName = spec.database,
       credsClone = JSON.parse(JSON.stringify(creds));
-    // the calls to drop and create the database need to be run against the database "postgres"
+
+    // The calls to drop and create the database need to be run against
+    // the database "postgres"
     credsClone.database = "postgres";
     winston.info("Dropping database " + databaseName);
     dataSource.query("drop database if exists " + databaseName + ";", credsClone, function (err, res) {
@@ -81,6 +90,7 @@ var  async            = require('async'),
         callback(err);
         return;
       }
+
       winston.info("Creating and restoring database " + databaseName);
       dataSource.query("create database " + databaseName + " template template1", credsClone, function (err, res) {
         if (err) {
@@ -88,8 +98,10 @@ var  async            = require('async'),
           callback(err);
           return;
         }
-        // use exec to restore the backup. The alternative, reading the backup file into a string to query
-        // doesn't work because the backup file is binary.
+
+        // Use exec to restore the backup. The alternative, reading the backup
+        // file into a string to query doesn't work because the backup
+        // file is binary.
         exec("pg_restore -U " + creds.username + " -h " + creds.hostname + " -p " +
             creds.port + " -d " + databaseName + " " + spec.backup, function (err, res) {
           if (err) {
@@ -105,16 +117,16 @@ var  async            = require('async'),
   /**
     @param {Object} specs Specification for the build process, in the form:
       [ { extensions:
-           [ '/home/user/git/xtuple/enyo-client',
-             '/home/user/git/xtuple/enyo-client/extensions/source/crm',
-             '/home/user/git/xtuple/enyo-client/extensions/source/sales',
+           [ '/home/user/git/xcore/enyo-client',
+             '/home/user/git/xcore-extensions/source/crm',
+             '/home/user/git/xcore-extensions/source/sales',
              '/home/user/git/private-extensions/source/incident_plus' ],
           database: 'dev',
           orms: [] },
         { extensions:
-           [ '/home/user/git/xtuple/enyo-client',
-             '/home/user/git/xtuple/enyo-client/extensions/source/sales',
-             '/home/user/git/xtuple/enyo-client/extensions/source/project' ],
+           [ '/home/user/git/xcore/enyo-client',
+             '/home/user/git/xcore-extensions/source/sales',
+             '/home/user/git/xcore-extensions/source/project' ],
           database: 'dev2',
           orms: [] }]
 
@@ -138,8 +150,9 @@ var  async            = require('async'),
           masterCallback(err);
           return;
         }
-        // recurse to do the build step. Of course we don't want to initialize a second
-        // time, so destroy those flags.
+
+        // recurse to do the build step. Of course we don't want to initialize a
+        // second time, so destroy those flags.
         specs[0].initialize = false;
         specs[0].wasInitialized = true;
         specs[0].backup = undefined;
@@ -148,46 +161,43 @@ var  async            = require('async'),
       return;
     }
 
-
-    //
     // The function to generate all the scripts for a database
-    //
     var installDatabase = function (spec, databaseCallback) {
       var extensions = spec.extensions,
         databaseName = spec.database;
 
-      //
       // The function to install all the scripts for an extension
-      //
       var getExtensionSql = function (extension, extensionCallback) {
         if (spec.clientOnly) {
           extensionCallback(null, "");
           return;
         }
-        //winston.info("Installing extension", databaseName, extension);
-        // deal with directory structure quirks
-        var isLibOrm = extension.indexOf("lib/orm") >= 0,
-          isApplicationCore = extension.indexOf("enyo-client") >= 0 &&
+
+        // Deal with directory structure quirks
+        var isLibOrm         = extension.indexOf("lib/orm") >= 0,
+
+          isApplicationCore  = extension.indexOf("enyo-client") >= 0 &&
             extension.indexOf("extension") < 0,
-          isCoreExtension = extension.indexOf("enyo-client") >= 0 &&
-            extension.indexOf("extension") >= 0,
-          isPublicExtension = extension.indexOf("xtuple-extensions") >= 0,
+
+          isPublicExtension  = extension.indexOf("xcore-extensions") >= 0,
+
           isPrivateExtension = extension.indexOf("private-extensions") >= 0,
-          dbSourceRoot = isLibOrm ?
+
+          dbSourceRoot       = isLibOrm ?
             path.join(extension, "source") :
             path.join(extension, "database/source"),
-          manifestFilename = path.join(dbSourceRoot, "manifest.js");
 
-        //
+          manifestFilename   = path.join(dbSourceRoot, "manifest.js");
+
         // Step 2:
         // Read the manifest files.
-        //
         if (!fs.existsSync(manifestFilename)) {
           // error condition: no manifest file
           winston.log("Cannot find manifest " + manifestFilename);
           extensionCallback("Cannot find manifest " + manifestFilename);
           return;
         }
+
         fs.readFile(manifestFilename, "utf8", function (err, manifestString) {
           var manifest,
             extensionName,
@@ -200,9 +210,7 @@ var  async            = require('async'),
             extensionName = manifest.name;
             extensionComment = manifest.comment;
             loadOrder = manifest.loadOrder || 999;
-            if (isCoreExtension) {
-              extensionLocation = "/core-extensions";
-            } else if (isPublicExtension) {
+            if (isPublicExtension) {
               extensionLocation = "/xtuple-extensions";
             } else if (isPrivateExtension) {
               extensionLocation = "/private-extensions";
@@ -215,10 +223,8 @@ var  async            = require('async'),
             return;
           }
 
-          //
           // Step 3:
           // Concatenate together all the files referenced in the manifest.
-          //
           var getScriptSql = function (filename, scriptCallback) {
             var fullFilename = path.join(dbSourceRoot, filename);
             if (!fs.existsSync(fullFilename)) {
@@ -273,6 +279,7 @@ var  async            = require('async'),
               scriptCallback(null, scriptContents += afterNoticeSql);
             });
           };
+
           async.mapSeries(manifest.databaseScripts || [], getScriptSql, function (err, scriptSql) {
             var registerSql,
               dependencies;
@@ -331,15 +338,18 @@ var  async            = require('async'),
         });
       };
 
-      // We also need to get the sql that represents the queries to generate
-      // the XM views from the ORMs. We use the old ORM installer for this,
-      // which has been retooled to return the queryString instead of running
-      // it itself.
+      /**
+        * We also need to get the sql that represents the queries to generate
+        * the XM views from the ORMs. We use the old ORM installer for this,
+        * which has been retooled to return the queryString instead of running
+        * it itself.
+      */
       var getOrmSql = function (extension, callback) {
         if (spec.clientOnly) {
           callback(null, "");
           return;
         }
+
         var ormDir = path.join(extension, "database/orm");
 
         if (fs.existsSync(ormDir)) {
@@ -372,24 +382,24 @@ var  async            = require('async'),
       };
 
       /**
-        The sql for each extension comprises the sql in the the source directory
-        with the orm sql tacked on to the end. Note that an alternate methodology
-        dictates that *all* source for all extensions should be run before *any*
-        orm queries for any extensions, but that is not the way it works here.
-       */
+        * The sql for each extension comprises the sql in the the source directory
+        * with the orm sql tacked on to the end. Note that an alternate methodology
+        * dictates that *all* source for all extensions should be run before *any*
+        * orm queries for any extensions, but that is not the way it works here.
+      */
       var getAllSql = function (extension, masterCallback) {
 
         async.series([
           function (callback) {
             getExtensionSql(extension, callback);
           },
-          function (callback) {
-            if (spec.clientOnly) {
-              callback(null, "");
-              return;
-            }
-            dictionaryBuilder.getDictionarySql(extension, callback);
-          },
+          // function (callback) {
+          //   if (spec.clientOnly) {
+          //     callback(null, "");
+          //     return;
+          //   }
+          //   dictionaryBuilder.getDictionarySql(extension, callback);
+          // },
           function (callback) {
             getOrmSql(extension, callback);
           },
@@ -408,10 +418,10 @@ var  async            = require('async'),
       };
 
 
-      //
-      // Asyncronously run all the functions to all the extension sql for the database,
-      // in series, and execute the query when they all have come back.
-      //
+      /**
+        * Asyncronously run all the functions to all the extension sql for the database,
+        * in series, and execute the query when they all have come back.
+      */
       async.mapSeries(extensions, getAllSql, function (err, extensionSql) {
         var sendToDatabase,
           allSql,
@@ -454,11 +464,11 @@ var  async            = require('async'),
       });
     };
 
-    //
-    // Step 1:
-    // Okay, before we install the database there is ONE thing we need to check,
-    // which is the pre-installed ORMs. Check that now.
-    //
+    /**
+      * Step 1:
+      * Okay, before we install the database there is ONE thing we need to check,
+      * which is the pre-installed ORMs. Check that now.
+    */
     var preInstallDatabase = function (spec, callback) {
       var existsSql = "select relname from pg_class where relname = 'orm'",
         credsClone = JSON.parse(JSON.stringify(creds)),
@@ -490,9 +500,7 @@ var  async            = require('async'),
       });
     };
 
-    //
     // Install all the databases
-    //
     async.map(specs, preInstallDatabase, function (err, res) {
       if (err) {
         winston.error(err.message, err.stack, err);
@@ -511,10 +519,7 @@ var  async            = require('async'),
     });
   };
 
-
-  //
   // Another option: unregister the extension
-  //
   exports.unregister = function (specs, creds, masterCallback) {
     var extension = path.basename(specs[0].extensions[0]),
       unregisterSql = ["delete from xt.usrext where usrext_id in " +
