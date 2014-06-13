@@ -50,5 +50,7 @@
   "main": "node-datasource/app.js",
   "scripts": {
     "preinstall": "cd node-datasource/lib/query ; npm install"
+    "test-build": "./node_modules/.bin/mocha -R spec test/build/build_app.js",
+ 
   }
 }
