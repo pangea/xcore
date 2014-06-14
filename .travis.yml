@@ -12,5 +12,4 @@ before_script:
   - "cd .."
 
 script:
-  - "npm run-script test"
-  - "npm run-script test-datasource"
+  - "npm run-script"
