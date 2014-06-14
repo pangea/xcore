@@ -6,6 +6,7 @@ install:
   - "bash scripts/install.sh -ipn"
 
 before_script:
+  - "source ~/.bashrc"
   - "cd node-datasource"
   - "npm start &"
   - "sleep 10"
