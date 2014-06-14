@@ -207,7 +207,7 @@ var  async            = require('async'),
             extensionComment = manifest.comment;
             loadOrder = manifest.loadOrder || 999;
             if (isPublicExtension) {
-              extensionLocation = "/xtuple-extensions";
+              extensionLocation = "/xcore-extensions";
             } else if (isPrivateExtension) {
               extensionLocation = "/private-extensions";
             }
@@ -494,6 +494,9 @@ var  async            = require('async'),
       }
       winston.info("Success installing all scripts.");
       winston.info("Cleaning up.");
+      if (masterCallback) {
+        masterCallback(null, []);
+      }
     });
   };
 

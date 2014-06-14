@@ -195,8 +195,7 @@ var _              = require('underscore'),
       buildSpecs.databaseOnly = options.databaseOnly;
       buildSpecs.queryDirect = options.queryDirect;
       buildSpecs.extensions = [
-        // path.join(__dirname, '../../lib/orm'),
-        // path.join(__dirname, '../../enyo-client')
+        path.join(__dirname, '../../lib/orm'),
       ];
 
       buildToSpec([buildSpecs], creds, callback);
