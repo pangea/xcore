@@ -7,10 +7,12 @@ install:
 
 before_script:
   - "source ~/.bashrc"
+  - "npm install -g mocha"
   - "cd node-datasource"
   - "npm start &"
   - "sleep 10"
   - "cd .."
+	- "cat ~/.bashrc"
 
 script:
   - "npm run-script test-build"
