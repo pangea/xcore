@@ -302,5 +302,5 @@ then
   fi
 fi
 
-bash $XCORE_DIR/scripts/apt.postgresql.org.sh
+bash $XCORE_DIR/scripts/enable_scripts.sh
 log "All done! Now run \"source ~/.bashrc\" to get access to scripts."
