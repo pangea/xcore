@@ -6,7 +6,8 @@
 var buildAll 	= require('../../scripts/lib/build_all'),
   assert 			= require('chai').assert,
   datasource 	= require('../../node-datasource/lib/ext/datasource').dataSource,
-  path 				= require('path');
+  path 				= require('path'),
+	exec				= require('child_process').exec;
 
 (function () {
   "use strict";
@@ -18,9 +19,12 @@ var buildAll 	= require('../../scripts/lib/build_all'),
       config = require(path.join(__dirname, "../../node-datasource/config.js")),
       creds = config.databaseServer,
 		databaseName = loginData.org;
-		//console.log("Config: " + JSON.stringify(config));	
-		//console.log("creds: " + JSON.stringify(creds));
-		//console.log("loginData: " + JSON.stringify(loginData));
+exec("cat " + path.join(__dirname, '../lib/login_data.js'), function(err, stdout, stderr) {
+			console.log("STDOUT: " + stdout);
+			console.log(err, stderr);
+		});
+
+			console.log(JSON.stringify(loginData));
     
 		it('should build without error on a brand-new database', function (done) {
       buildAll.build({
