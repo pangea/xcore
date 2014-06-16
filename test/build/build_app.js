@@ -16,7 +16,7 @@ var buildAll 	= require('../../scripts/lib/build_all'),
     var loginData = require(path.join(__dirname, "../lib/login_data.js")).data,
 			datasource = require('../../../xcore/node-datasource/lib/ext/datasource').dataSource,
       config = require(path.join(__dirname, "../../node-datasource/config.js")),
-      creds = config.databaseServer,
+      creds = config.databaseServer;
       //databaseName = loginData.org;
 		console.log("Config: " + config);	
 		console.log("creds: " + creds);
