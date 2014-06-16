@@ -13,14 +13,17 @@ var buildAll 	= require('../../scripts/lib/build_all'),
 
   describe('The database build tool', function () {
     this.timeout(100 * 60 * 1000);
-    var loginData = require('../lib/login_data.js'),
-			datasource = require('../../../xcore/node-datasource/lib/ext/datasource').dataSource,
+			var datasource = require('../../../xcore/node-datasource/lib/ext/datasource').dataSource,
+		
+			loginData = require(path.join(__dirname, "../lib/login_data.js")),
+
       config = require(path.join(__dirname, "../../node-datasource/config.js")),
       creds = config.databaseServer;
       //databaseName = loginData.org;
 		console.log("Config: " + JSON.stringify(config));	
 		console.log("creds: " + JSON.stringify(creds));
 		console.log("loginData: " + JSON.stringify(loginData));
+		console.log("DataSource: " + JSON.stringify(datasource));
 		/*
     it('should build without error on a brand-new database', function (done) {
       buildAll.build({
