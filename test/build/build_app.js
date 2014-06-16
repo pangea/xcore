@@ -15,11 +15,15 @@ var buildAll 	= require('../../scripts/lib/build_all'),
   describe('The database build tool', function () {
     this.timeout(100 * 60 * 1000);
     var loginData = require(path.join(__dirname, "../lib/login_data.js")).data;
-		exec("cat " + path.join(__dirname, "../lib/login_data.js"), function(err, stdout, stderr) {
-			console.log("Err: " + err);
-			console.log("Stdout: " + stdout);
-			console.log("Stderr: " + stderr);
-		}); 
+		var p = path.join(__dirname, "../lib");
+		exec('ls ' + p, function(e, o, er) {
+			console.log("LS: -> " + o);
+		});
+		ldExist = fs.existsSync(__dirname, "../lib/login_data.js");
+
+		if (ldExist) {
+			console.log("Well the file exist...\n");
+		}
 
 		var datasource = require('../../../xcore/node-datasource/lib/ext/datasource').dataSource,
       config = require(path.join(__dirname, "../../node-datasource/config.js")),
