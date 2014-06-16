@@ -6,30 +6,21 @@
 var buildAll 	= require('../../scripts/lib/build_all'),
   assert 			= require('chai').assert,
   datasource 	= require('../../node-datasource/lib/ext/datasource').dataSource,
-  path 				= require('path'),
-	fs 					= require('fs'),
-	exec				= require('child_process').exec;
+  path 				= require('path');
 
 (function () {
   "use strict";
+
   describe('The database build tool', function () {
     this.timeout(100 * 60 * 1000);
-    var loginData = require(path.join(__dirname, "../lib/login_data.js")).data;
-		var p = path.join(__dirname, "../lib");
-		exec('ls ' + p, function(e, o, er) {
-			console.log("LS: -> " + o);
-		});
-		ldExists = fs.existsSync(__dirname + "../lib/login_data.js");
-
-		if (ldExists) {
-			console.log("Well the file exist...\n");
-		}
-
-		var datasource = require('../../../xcore/node-datasource/lib/ext/datasource').dataSource,
+    var loginData = require(path.join(__dirname, "../lib/login_data.js")).data,
+			datasource = require('../../../xcore/node-datasource/lib/ext/datasource').dataSource,
       config = require(path.join(__dirname, "../../node-datasource/config.js")),
       creds = config.databaseServer,
-      databaseName = loginData.org;
-
+      //databaseName = loginData.org;
+		console.log("Config: " + config);	
+		console.log("creds: " + creds);
+		/*
     it('should build without error on a brand-new database', function (done) {
       buildAll.build({
         database: databaseName,
@@ -40,7 +31,8 @@ var buildAll 	= require('../../scripts/lib/build_all'),
         done();
       });
     });
-
+		*/	
+		/*
     it('should grant all privileges to the user', function (done) {
       var sql = "insert into usrpriv (usrpriv_username, usrpriv_priv_id) " +
         "select $1, priv_id " +
@@ -55,6 +47,7 @@ var buildAll 	= require('../../scripts/lib/build_all'),
         done();
       });
     });
+		*/
   });
 }());
 
