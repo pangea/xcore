@@ -69,6 +69,14 @@ newcap:true, noarg:true, regexp:true, undef:true, strict:true, trailing:true, wh
       port: 5432,
       user: "admin",
       password: "admin"
-    }
+    }/*,
+    biServer: {
+      bihost: "localhost",
+      port: 8080,
+      httpsport: 8443,
+      catalog: "xCore",
+      tenantname: "default",
+      restkeyfile: "/etc/xcore/lib/rest-keys"
+    }*/
   };
 }());
