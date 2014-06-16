@@ -19,13 +19,7 @@ var buildAll 	= require('../../scripts/lib/build_all'),
       config = require(path.join(__dirname, "../../node-datasource/config.js")),
       creds = config.databaseServer,
 		databaseName = loginData.org;
-exec("cat " + path.join(__dirname, '../lib/login_data.js'), function(err, stdout, stderr) {
-			console.log("STDOUT: " + stdout);
-			console.log(err, stderr);
-		});
-
-			console.log(JSON.stringify(loginData));
-    
+			
 		it('should build without error on a brand-new database', function (done) {
       buildAll.build({
         database: databaseName,
@@ -36,6 +30,7 @@ exec("cat " + path.join(__dirname, '../lib/login_data.js'), function(err, stdout
         done();
       });
     });
+
     it('should grant all privileges to the user', function (done) {
       var sql = "insert into usrpriv (usrpriv_username, usrpriv_priv_id) " +
         "select $1, priv_id " +
@@ -50,6 +45,7 @@ exec("cat " + path.join(__dirname, '../lib/login_data.js'), function(err, stdout
         done();
       });
     });
+
   });
 }());
 
