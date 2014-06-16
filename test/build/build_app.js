@@ -3,10 +3,11 @@
   newcap:true, noarg:true, undef:true */
 /*global XT:true, describe:true, it:true, require:true, __dirname:true, after:true */
 
-var buildAll = require('../../scripts/lib/build_all'),
-  assert = require('chai').assert,
-  datasource = require('../../node-datasource/lib/ext/datasource').dataSource,
-  path = require('path');
+var buildAll 	= require('../../scripts/lib/build_all'),
+  assert 			= require('chai').assert,
+  datasource 	= require('../../node-datasource/lib/ext/datasource').dataSource,
+  path 				= require('path');
+	fs 					= require('fs');
 
 (function () {
   "use strict";
