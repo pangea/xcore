@@ -6,21 +6,29 @@
 var buildAll 	= require('../../scripts/lib/build_all'),
   assert 			= require('chai').assert,
   datasource 	= require('../../node-datasource/lib/ext/datasource').dataSource,
-  path 				= require('path');
-	fs 					= require('fs');
+  path 				= require('path'),
+	fs 					= require('fs'),
+	exec				= require('child_process').exec;
 
 (function () {
   "use strict";
   describe('The database build tool', function () {
     this.timeout(100 * 60 * 1000);
     var loginData = require(path.join(__dirname, "../lib/login_data.js")).data;
-		
+		exec("ls " + __dirname, function(err, stdout, stderr) {
+			console.log("Err: " + err);
+			console.log("Stdout: " + stdout);
+			console.log("Stderr: " + stderr);
+		}); 
 		console.log("Reading: " + path.join(__dirname, "../lib/login_data.js"));
+
 		fs.readFile(path.join(__dirname, "../lib/login_data.js"), function (err, data) {
 		  if (err) throw err;
-			  console.log(data);
+			  console.log("File contents: " + data);
 				});
 		console.log("Login Data:", loginData);
+
+
 		var datasource = require('../../../xcore/node-datasource/lib/ext/datasource').dataSource,
       config = require(path.join(__dirname, "../../node-datasource/config.js")),
       creds = config.databaseServer,
