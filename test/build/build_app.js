@@ -12,9 +12,9 @@ var buildAll = require('../../scripts/lib/build_all'),
   "use strict";
   describe('The database build tool', function () {
     this.timeout(100 * 60 * 1000);
-console.log(path.join(__dirname, "../lib/login_data.js"));
-    var loginData = require(path.join(__dirname, "../lib/login_data.js")).data,
-      datasource = require('../../../xcore/node-datasource/lib/ext/datasource').dataSource,
+    var loginData = require(path.join(__dirname, "../lib/login_data.js")).data;
+		console.log("Login Data:", loginData);
+		var datasource = require('../../../xcore/node-datasource/lib/ext/datasource').dataSource,
       config = require(path.join(__dirname, "../../node-datasource/config.js")),
       creds = config.databaseServer,
       databaseName = loginData.org;
