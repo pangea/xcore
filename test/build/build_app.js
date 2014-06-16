@@ -20,7 +20,7 @@ var buildAll 	= require('../../scripts/lib/build_all'),
       //databaseName = loginData.org;
 		console.log("Config: " + JSON.stringify(config));	
 		console.log("creds: " + JSON.stringify(creds));
-		console.log("loginData: " + JSON.stringify(creds));
+		console.log("loginData: " + JSON.stringify(loginData));
 		/*
     it('should build without error on a brand-new database', function (done) {
       buildAll.build({
