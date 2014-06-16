@@ -18,9 +18,9 @@ var buildAll 	= require('../../scripts/lib/build_all'),
       config = require(path.join(__dirname, "../../node-datasource/config.js")),
       creds = config.databaseServer;
       //databaseName = loginData.org;
-		console.log("Config: " + config);	
-		console.log("creds: " + creds);
-		console.log("loginData: " + creds);
+		console.log("Config: " + JSON.stringify(config));	
+		console.log("creds: " + JSON.stringify(creds));
+		console.log("loginData: " + JSON.stringify(creds));
 		/*
     it('should build without error on a brand-new database', function (done) {
       buildAll.build({
