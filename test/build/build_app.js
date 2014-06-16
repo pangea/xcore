@@ -19,9 +19,9 @@ var buildAll 	= require('../../scripts/lib/build_all'),
 		exec('ls ' + p, function(e, o, er) {
 			console.log("LS: -> " + o);
 		});
-		ldExist = fs.existsSync(__dirname, "../lib/login_data.js");
+		ldExists = fs.existsSync(__dirname + "../lib/login_data.js");
 
-		if (ldExist) {
+		if (ldExists) {
 			console.log("Well the file exist...\n");
 		}
 
