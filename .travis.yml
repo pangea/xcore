@@ -14,4 +14,6 @@ before_script:
   - "cd .."
 
 script:
-  - "npm run-script test-build -d dev"
+  - "ls /home/travis/build/noahprince22/xcore/test/lib"
+  - "cat /home/travis/build/noahprince22/xcore/test/lib/login_data.js"
+  - "npm run-script test-build"
