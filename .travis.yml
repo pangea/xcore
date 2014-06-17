@@ -14,4 +14,4 @@ before_script:
   - "cd .."
 
 script:
-  - "npm run-script test-build"
+  - "npm run-script test-build -d dev"
