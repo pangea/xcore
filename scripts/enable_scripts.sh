@@ -5,8 +5,7 @@ SCRIPT=$(readlink -f $0) # Absolute path to this script.
 SCRIPTPATH=`dirname $SCRIPT` # Absolute path this script is in.
 MODULEBIN="$SCRIPTPATH/../node_modules/.bin"
 
-echo "PATH=$PATH:${SCRIPTPATH}:${MODULEBIN}" >> ~/.bashrc
-echo "export PATH" >> ~/.bashrc
+echo "export PATH=\"\$PATH:${SCRIPTPATH}:${MODULEBIN}\"" >> ~/.bashrc
 
 # Add execute privileges to scripts
 for i in "$SCRIPTPATH/"*; do
