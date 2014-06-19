@@ -5,8 +5,8 @@ noarg:true, regexp:true, undef:true, strict:true, trailing:true, white:true */
 (function () {
   'use strict';
 
-  var Query = require('./query'),
-    SourceQuery = require('./source_query'),
+  var Query = require('./query');
+  var  SourceQuery = require('./source_query'),
     isValidDate = _.isValidDate([
       'MM/DD/YY',
       'MM/DD/YYYY',

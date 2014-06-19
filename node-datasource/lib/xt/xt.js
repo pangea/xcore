@@ -39,7 +39,7 @@ XT = { };
     // mostly for logging, make sure anything that wants to know can
     // easily find why we're shutting down
     X.SHUTDOWN_SIGNAL = signal;
-    X.io.console(X.StringBuffer.create({color: "blue", prefix: null}),
+    X.io.console(X.StringBuffer.create({color: "yellow", prefix: null}),
       "\n================================================" +
       "\n%@ CAUGHT - cleaning up before shutting down".f(signal.toUpperCase()) +
       "\n================================================"
@@ -53,11 +53,10 @@ XT = { };
   // the first method to run once the framework has been told it is
   // ready
   X.run(function () {
-
-    var i, sub;
+   var i, sub;
 
     // special case where the desired output requires calling console directly
-    X.io.console(X.StringBuffer.create({ color: 'blue', prefix: null }),
+    X.io.console(X.StringBuffer.create({ color: 'yellow', prefix: null }),
       "\n================================================" +
       "\nXCORE NODE.JS FRAMEWORK ({version})".f({ version: X.version || "N/A" }) +
       "\n================================================\n"
@@ -66,8 +65,8 @@ XT = { };
     require("./database");
 
     X.pid = process.pid;
-
-    // must explicitly be set to false for it to know you do not want
+    
+		// must explicitly be set to false for it to know you do not want
     // a pidfile!
     if (X.pidFile !== false) {
       if (!X.pidFilePath) {
@@ -114,7 +113,7 @@ XT = { };
     // or log as gracefully as possible
     process.once('exit', _.bind(X.cleanup, X));
 
-    _.forEach(["SIGINT", "SIGHUP", "SIGQUIT", "SIGKILL", "SIGSEGV", "SIGILL"], function (sig) {
+    _.forEach(["SIGINT", "SIGHUP", "SIGQUIT", "SIGSEGV", "SIGILL"], function (sig) {
       process.once(sig, _.bind(sighandler, X, sig));
     });
   });

@@ -7,7 +7,7 @@ drop trigger if exists orm_did_change on xt.orm;
 
 select xt.add_column('orm','orm_id', 'serial', 'primary key');
 select xt.add_column('orm','orm_json', 'text', 'not null');
-select xt.add_column('orm','orm_namespace', 'text', E'not null');
+select xt.add_column('orm','orm_namespace', 'text', 'not null');
 select xt.add_column('orm','orm_type', 'text', 'not null');
 select xt.add_column('orm','orm_context', 'text', 'not null');
 select xt.add_column('orm','orm_ext', 'bool', 'not null default false');

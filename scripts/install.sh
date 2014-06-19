@@ -224,7 +224,7 @@ init_everythings() {
   cdir $XCORE_DIR/node-datasource/lib/private
   cat /dev/urandom | tr -dc '0-9a-zA-Z!@#$%^&*_+-'| head -c 64 > salt.txt
   log "Created salt"
-  openssl genrsa -des3 -out server.key -passout pass:xtuple 1024 2>&1 | tee -a $LOG_FILE
+  openssl genrsa -des3 -out server.key -passout pass:xcore 1024 2>&1 | tee -a $LOG_FILE
   openssl rsa -in server.key -passin pass:xcore -out key.pem -passout pass:xcore 2>&1 | tee -a $LOG_FILE
   openssl req -batch -new -key key.pem -out server.csr -subj '/CN='$(hostname) 2>&1 | tee -a $LOG_FILE
   openssl x509 -req -days 365 -in server.csr -signkey key.pem -out server.crt 2>&1 | tee -a $LOG_FILE

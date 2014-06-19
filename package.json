@@ -22,15 +22,20 @@
     "bcrypt": "latest",
     "colors": "latest",
     "commander": "latest",
+    "congruence": "~1.2.4",
+    "debug": "latest",
     "express": "latest",
     "googleapis": "latest",
     "json-patch": "latest",
+    "moment": "2.5.1",
     "morgan": "latest",
     "pg": "latest",
     "rimraf": "latest",
     "rjson": "latest",
     "socket.io": "latest",
+    "static-favicon": "latest",
     "underscore": "latest",
+    "underscore-contrib": "latest",
     "underscore.string": "latest",
     "winston": "latest",
     "xmla4js": "latest"
@@ -40,6 +45,7 @@
     "mocha": "latest",
     "require-uncache": "latest",
     "html5": "latest",
+    "contextify": "latest",
     "zombie": "latest"
   },
   "optionalDependencies": {
@@ -51,6 +57,6 @@
   "scripts": {
     "preinstall": "cd node-datasource/lib/query ; npm install",
     "test-build": "mocha -R spec test/build/build_app.js",
-    "test": "mocha -R spec test/lib/login.js"
+    "test": "mocha -R spec test/database/* test/routes/*"
   }
 }

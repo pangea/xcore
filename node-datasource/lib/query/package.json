@@ -10,8 +10,8 @@
   "author": "Travis Webb",
   "license": "BSD",
   "dependencies": {
-    "congruence": "latest",
-    "moment": "latest",
+    "congruence": "~1.2.4",
+    "moment": "2.5.1",
     "underscore": "latest"
   },
   "devDependencies": {},
