@@ -30,14 +30,14 @@ var _              = require('underscore'),
 
   var creds;
 
-  exports.build = function (options, callback) {
+  exports.build = function build(options, callback) {
     var buildSpecs = {},
       databases = [],
       extension,
-      config,
+      config;
 
       // Resolve the correct path for file. "/direct/path/" vs "../../relative"
-      resolvePath = function (f) {
+      function resolvePath(f) {
         var resolvedPath;
 
         if (f && f.substring(0, 1) === '/') {
@@ -50,7 +50,7 @@ var _              = require('underscore'),
       },
 
       // List registered extensions in database & append core dirs to list
-      getRegisteredExtensions = function (database, callback) {
+      function getRegisteredExtensions(database, callback) {
         var result,
           credsClone = JSON.parse(JSON.stringify(creds)),
           existsSql = "select relname from pg_class where relname = 'ext'",
@@ -105,7 +105,7 @@ var _              = require('underscore'),
       },
 
       // Build the application according to the buildSpecs
-      buildToSpec = function (specs, creds, buildCallback) {
+      function buildToSpec(specs, creds, buildCallback) {
         buildClient(specs, function (err, res) {
           if (err) {
             buildCallback(err);
@@ -193,7 +193,7 @@ var _              = require('underscore'),
       buildSpecs.databaseOnly = options.databaseOnly;
       buildSpecs.queryDirect = options.queryDirect;
       buildSpecs.extensions = [
-        path.join(__dirname, '../../lib/orm'),
+        path.join(__dirname, '../../lib/orm')
       ];
 
       buildToSpec([buildSpecs], creds, callback);
