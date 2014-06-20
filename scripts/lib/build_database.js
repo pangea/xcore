@@ -282,9 +282,7 @@ var  async            = require('async'),
             }
             // each String of the scriptContents is the concatenated SQL for the script.
             // join these all together into a single string for the whole extension.
-            var extensionSql = _.reduce(scriptSql, function (memo, script) {
-              return memo + script;
-            }, "");
+            var extensionSql = scriptSql.join('');
 
             if (!isLibOrm) {
               // register extension and dependencies
@@ -300,8 +298,7 @@ var  async            = require('async'),
                 extensionSql = dependencySql + extensionSql;
               });
               extensionSql = registerSql + extensionSql;
-            }
-            if (!isLibOrm) {
+
               // unless it it hasn't yet been defined (ie. lib/orm),
               // running xt.js_init() is probably a good idea.
               extensionSql = jsInit + extensionSql;
@@ -390,9 +387,7 @@ var  async            = require('async'),
             callback(null, jsInit);
           },
         ], function (err, results) {
-          masterCallback(err, _.reduce(results, function (memo, sql) {
-            return memo + sql;
-          }, ""));
+          masterCallback(err, results.join(''));
         });
       };
 
@@ -412,9 +407,7 @@ var  async            = require('async'),
         }
         // each String of the scriptContents is the concatenated SQL for the extension.
         // join these all together into a single string for the whole database.
-        allSql = _.reduce(extensionSql, function (memo, script) {
-          return memo + script;
-        }, "");
+        allSql = extensionSql.join('');
 
         if (spec.queryDirect) {
           // but we can query the database directly if we want
