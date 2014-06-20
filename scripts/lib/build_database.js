@@ -175,13 +175,13 @@ var  async            = require('async'),
         // Deal with directory structure quirks
         var isLibOrm         = extension.indexOf("lib/orm") >= 0,
 
-          isExtension        = extension.indexOf("extensions") >= 0,
+            isExtension      = extension.indexOf("extensions") >= 0,
 
-          dbSourceRoot       = isLibOrm ?
-            path.join(extension, "source") :
-            path.join(extension, "database/source"),
+            dbSourceRoot     = isLibOrm ?
+              path.join(extension, "source") :
+              path.join(extension, "database/source"),
 
-          manifestFilename   = path.join(dbSourceRoot, "manifest.js");
+            manifestFilename = path.join(dbSourceRoot, "manifest.js");
 
         // Step 2:
         // Read the manifest files.
