@@ -175,9 +175,7 @@ var  async            = require('async'),
         // Deal with directory structure quirks
         var isLibOrm         = extension.indexOf("lib/orm") >= 0,
 
-          isPublicExtension  = extension.indexOf("xcore-extensions") >= 0,
-
-          isPrivateExtension = extension.indexOf("private-extensions") >= 0,
+          isExtension        = extension.indexOf("extensions") >= 0,
 
           dbSourceRoot       = isLibOrm ?
             path.join(extension, "source") :
@@ -206,12 +204,9 @@ var  async            = require('async'),
             extensionName = manifest.name;
             extensionComment = manifest.comment;
             loadOrder = manifest.loadOrder || 999;
-            if (isPublicExtension) {
-              extensionLocation = "/xcore-extensions";
-            } else if (isPrivateExtension) {
-              extensionLocation = "/private-extensions";
+            if(isExtension) {
+              extensionLocation = "/extensions";
             }
-
           } catch (error) {
             // error condition: manifest file is not properly formatted
             winston.log("Manifest is not valid JSON" + manifestFilename);
@@ -432,12 +427,14 @@ var  async            = require('async'),
           allSql = "\\set ON_ERROR_STOP TRUE;\n" + allSql;
         }
 
-        if (spec.wasInitialized) {
-          // give the admin user every extension by default
-          allSql = allSql + "insert into xt.usrext (usrext_usr_username, usrext_ext_id) " +
-            "select '" + creds.username +
-            "', ext_id from xt.ext where ext_location = '/core-extensions';";
-        }
+        // NOTE: We don't have core extensions anymore, so I don't think any of
+        // this is necessary.  Leaving in, just in case.
+        // if (spec.wasInitialized) {
+        //   // give the admin user every extension by default
+        //   allSql = allSql + "insert into xt.usrext (usrext_usr_username, usrext_ext_id) " +
+        //     "select '" + creds.username +
+        //     "', ext_id from xt.ext where ext_location = '/core-extensions';";
+        // }
 
         winston.info("Applying build to database " + spec.database);
         credsClone.database = spec.database;
