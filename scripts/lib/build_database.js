@@ -201,17 +201,18 @@ var  async            = require('async'),
             isFirstScript = true;
           try {
             manifest = JSON.parse(manifestString);
-            extensionName = manifest.name;
-            extensionComment = manifest.comment;
-            loadOrder = manifest.loadOrder || 999;
-            if(isExtension) {
-              extensionLocation = "/extensions";
-            }
           } catch (error) {
             // error condition: manifest file is not properly formatted
             winston.log("Manifest is not valid JSON" + manifestFilename);
             extensionCallback("Manifest is not valid JSON" + manifestFilename);
             return;
+          }
+
+          extensionName = manifest.name;
+          extensionComment = manifest.comment;
+          loadOrder = manifest.loadOrder || 999;
+          if (isExtension) {
+            extensionLocation = "/extensions";
           }
 
           // Step 3:
