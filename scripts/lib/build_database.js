@@ -29,12 +29,12 @@ var  async            = require('async'),
   // There are a few ways we can send our query to the database.
 
   // Send query via REST service.
-  var sendToDatabaseDatasource = function (query, credsClone, options, callback) {
+  function sendToDatabaseDatasource(query, credsClone, options, callback) {
     dataSource.query(query, credsClone, callback);
   };
 
   // Execute psql command locally.
-  var sendToDatabasePsql = function (query, credsClone, options, callback) {
+  function sendToDatabasePsql(query, credsClone, options, callback) {
     var filename = path.join(__dirname, "temp_query_" + credsClone.database + ".sql");
     fs.writeFile(filename, query, function (err) {
       if (err) {
@@ -75,7 +75,7 @@ var  async            = require('async'),
     * Step 0 (optional, triggered by flags), wipe out the database
     * and load it from scratch using pg_restore something.backup
   */
-  var initDatabase = function (spec, creds, callback) {
+  function initDatabase(spec, creds, callback) {
     var databaseName = spec.database,
       credsClone = JSON.parse(JSON.stringify(creds));
 
@@ -136,7 +136,7 @@ var  async            = require('async'),
         password: 'admin',
         host: 'localhost' }
   */
-  var buildDatabase = exports.buildDatabase = function (specs, creds, masterCallback) {
+  exports.buildDatabase = function buildDatabase(specs, creds, masterCallback) {
     if (specs.length === 1 &&
         specs[0].initialize &&
         specs[0].backup) {
@@ -161,12 +161,12 @@ var  async            = require('async'),
     }
 
     // The function to generate all the scripts for a database
-    var installDatabase = function (spec, databaseCallback) {
+    function installDatabase(spec, databaseCallback) {
       var extensions = spec.extensions,
         databaseName = spec.database;
 
       // The function to install all the scripts for an extension
-      var getExtensionSql = function (extension, extensionCallback) {
+      function getExtensionSql(extension, extensionCallback) {
         if (spec.clientOnly) {
           extensionCallback(null, "");
           return;
@@ -217,7 +217,7 @@ var  async            = require('async'),
 
           // Step 3:
           // Concatenate together all the files referenced in the manifest.
-          var getScriptSql = function (filename, scriptCallback) {
+          function getScriptSql(filename, scriptCallback) {
             var fullFilename = path.join(dbSourceRoot, filename);
             if (!fs.existsSync(fullFilename)) {
               // error condition: script referenced in manifest.js isn't there
@@ -333,7 +333,7 @@ var  async            = require('async'),
         * which has been retooled to return the queryString instead of running
         * it itself.
       */
-      var getOrmSql = function (extension, callback) {
+      function getOrmSql(extension, callback) {
         if (spec.clientOnly) {
           callback(null, "");
           return;
@@ -342,7 +342,7 @@ var  async            = require('async'),
         var ormDir = path.join(extension, "database/orm");
 
         if (fs.existsSync(ormDir)) {
-          var updateSpecs = function (err, res) {
+          function updateSpecs(err, res) {
             if (err) {
               callback(err);
             }
@@ -366,7 +366,7 @@ var  async            = require('async'),
         * dictates that *all* source for all extensions should be run before *any*
         * orm queries for any extensions, but that is not the way it works here.
       */
-      var getAllSql = function (extension, masterCallback) {
+      function getAllSql(extension , masterCallback) {
 
         async.series([
           function (callback) {
@@ -443,7 +443,7 @@ var  async            = require('async'),
       * Okay, before we install the database there is ONE thing we need to check,
       * which is the pre-installed ORMs. Check that now.
     */
-    var preInstallDatabase = function (spec, callback) {
+    function preInstallDatabase(spec, callback) {
       var existsSql = "select relname from pg_class where relname = 'orm'",
         credsClone = JSON.parse(JSON.stringify(creds)),
         ormTestSql = "select orm_namespace as namespace, " +
