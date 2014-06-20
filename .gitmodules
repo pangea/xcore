@@ -1,0 +1,6 @@
+[submodule "node-datasource/lib/enyo"]
+	path = node-datasource/lib/enyo
+	url = https://github.com/enyojs/enyo.git
+[submodule "node-datasource/lib/enyo-layout"]
+	path = node-datasource/lib/enyo-layout
+	url = https://github.com/enyojs/layout.git
