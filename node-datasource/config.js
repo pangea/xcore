@@ -31,7 +31,7 @@ newcap:true, noarg:true, regexp:true, undef:true, strict:true, trailing:true, wh
       certFile: "./lib/private/server.crt",
       caFile: null, // needs to be an array of strings
       saltFile: "./lib/private/salt.txt",
-      xCoreDbDir: "/usr/local/xcore/databases",
+      xTupleDbDir: "/usr/local/xcore/databases",
       psqlPath: "psql",
       nodePath: "node",
 
@@ -69,7 +69,7 @@ newcap:true, noarg:true, regexp:true, undef:true, strict:true, trailing:true, wh
       port: 5432,
       user: "admin",
       password: "admin"
-    }/*,
+    } /*,
     biServer: {
       bihost: "localhost",
       port: 8080,
@@ -77,6 +77,6 @@ newcap:true, noarg:true, regexp:true, undef:true, strict:true, trailing:true, wh
       catalog: "xCore",
       tenantname: "default",
       restkeyfile: "/etc/xcore/lib/rest-keys"
-    }*/
+    } */
   };
 }());
