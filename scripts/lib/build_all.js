@@ -67,10 +67,8 @@ var _              = require('underscore'),
                 name = row.ext_name,
                 extPath;
 
-              if (location === '/xcore-extensions') {
-                extPath = path.join(__dirname, "../../../xcore-extensions/source", name);
-              } else if (location === '/private-extensions') {
-                extPath = path.join(__dirname, "../../../private-extensions/source", name);
+              if (location === '/extensions') {
+                extPath = path.join(__dirname, "../../lib/extensions", name);
               }
 
               return extPath;
