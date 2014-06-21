@@ -32,106 +32,106 @@ var _              = require('underscore'),
 
   exports.build = function build(options, callback) {
     var buildSpecs = {},
-      databases = [],
-      extension,
-      config;
+        databases = [],
+        extension,
+        config,
 
       // Resolve the correct path for file. "/direct/path/" vs "../../relative"
-    function resolvePath(f) {
-      var resolvedPath;
+        resolvePath = function (f) {
+          var resolvedPath;
 
-      if (f && f.substring(0, 1) === '/') {
-        resolvedPath = f;
-      } else if (f) {
-        resolvedPath = path.join(process.cwd(), f);
-      }
+          if (f && f.substring(0, 1) === '/') {
+            resolvedPath = f;
+          } else if (f) {
+            resolvedPath = path.join(process.cwd(), f);
+          }
 
-      return resolvedPath;
-    };
+          return resolvedPath;
+        },
 
-      // List registered extensions in database & append core dirs to list
-    function getRegisteredExtensions(database, callback) {
-      var result,
-          credsClone = JSON.parse(JSON.stringify(creds)),
-          existsSql = "select relname from pg_class where relname = 'ext'",
-          extSql = "SELECT * FROM xt.ext ORDER BY ext_load_order",
+        // List registered extensions in database & append core dirs to list
+        getRegisteredExtensions = function (database, callback) {
+          var result,
+              credsClone = JSON.parse(JSON.stringify(creds)),
+              existsSql = "select relname from pg_class where relname = 'ext'",
+              extSql = "SELECT * FROM xt.ext ORDER BY ext_load_order",
 
-          adaptExtensions = function (err, res) {
+              adaptExtensions = function (err, res) {
+                if (err) {
+                  callback(err);
+                  return;
+                }
+
+                var paths = _.map(res.rows, function (row) {
+                  var location = row.ext_location,
+                      name = row.ext_name,
+                      extPath;
+
+                  if (location === '/extensions') {
+                    extPath = path.join(__dirname, "../../lib/extensions", name);
+                  }
+
+                  return extPath;
+                });
+
+                // Add orm to extensions paths.
+                paths.unshift(path.join(__dirname, "../../lib/orm")); // lib path
+
+                callback(null, {
+                  extensions: paths,
+                  database: database,
+                  keepSql: options.keepSql,
+                  wipeViews: options.wipeViews,
+                  clientOnly: options.clientOnly,
+                  databaseOnly: options.databaseOnly,
+                  queryDirect: options.queryDirect
+                });
+              };
+
+          credsClone.database = database;
+          dataSource.query(existsSql, credsClone, function (err, res) {
             if (err) {
               callback(err);
               return;
             }
+            if (res.rowCount === 0) {
+              // xt.ext doesn't exist, because this is probably a brand-new DB.
+              // No problem! Give them empty set.
+              adaptExtensions(null, { rows: [] });
+            } else {
+              dataSource.query(extSql, credsClone, adaptExtensions);
+            }
+          });
+        },
 
-            var paths = _.map(res.rows, function (row) {
-              var location = row.ext_location,
-                  name = row.ext_name,
-                  extPath;
+        // Build the application according to the buildSpecs
+        buildToSpec = function (specs, creds, buildCallback) {
+          buildClient(specs, function (err, res) {
+            if (err) {
+              buildCallback(err);
+              return;
+            }
+            buildDatabase(specs, creds, function (databaseErr, databaseRes) {
+              var returnMessage;
+              if (databaseErr && specs[0].wipeViews) {
+                buildCallback(databaseErr);
+                return;
 
-              if (location === '/extensions') {
-                extPath = path.join(__dirname, "../../lib/extensions", name);
+              } else if (databaseErr) {
+                buildCallback("Build failed. Try wiping the views next time by running me with the -w flag.");
+                return;
               }
-
-              return extPath;
-            });
-
-            // Add orm to extensions paths.
-            paths.unshift(path.join(__dirname, "../../lib/orm")); // lib path
-
-            callback(null, {
-              extensions: paths,
-              database: database,
-              keepSql: options.keepSql,
-              wipeViews: options.wipeViews,
-              clientOnly: options.clientOnly,
-              databaseOnly: options.databaseOnly,
-              queryDirect: options.queryDirect
-            });
-          };
-
-      credsClone.database = database;
-      dataSource.query(existsSql, credsClone, function (err, res) {
-        if (err) {
-          callback(err);
-          return;
-        }
-        if (res.rowCount === 0) {
-          // xt.ext doesn't exist, because this is probably a brand-new DB.
-          // No problem! Give them empty set.
-          adaptExtensions(null, { rows: [] });
-        } else {
-          dataSource.query(extSql, credsClone, adaptExtensions);
-        }
-      });
-    };
-
-      // Build the application according to the buildSpecs
-    function buildToSpec(specs, creds, buildCallback) {
-      buildClient(specs, function (err, res) {
-        if (err) {
-          buildCallback(err);
-          return;
-        }
-        buildDatabase(specs, creds, function (databaseErr, databaseRes) {
-          var returnMessage;
-          if (databaseErr && specs[0].wipeViews) {
-            buildCallback(databaseErr);
-            return;
-
-          } else if (databaseErr) {
-            buildCallback("Build failed. Try wiping the views next time by running me with the -w flag.");
-            return;
-          }
-          returnMessage = "\n";
-          _.each(specs, function (spec) {
-            returnMessage += "Database: " + spec.database + '\nDirectories:\n';
-            _.each(spec.extensions, function (ext) {
-              returnMessage += '  ' + ext + '\n';
+              returnMessage = "\n";
+              _.each(specs, function (spec) {
+                returnMessage += "Database: " + spec.database + '\nDirectories:\n';
+                _.each(spec.extensions, function (ext) {
+                  returnMessage += '  ' + ext + '\n';
+                });
+              });
+              buildCallback(null, "Build succeeded." + returnMessage);
             });
           });
-          buildCallback(null, "Build succeeded." + returnMessage);
-        });
-      });
-    };
+        };
 
     /**
      * Go through the commander options and build the app accordingly.
