@@ -27,6 +27,7 @@
     "express": "latest",
     "googleapis": "latest",
     "json-patch": "latest",
+    "minimist": "latest",
     "moment": "2.5.1",
     "morgan": "latest",
     "pg": "latest",
