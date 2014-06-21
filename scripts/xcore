@@ -99,7 +99,7 @@ var copyClientCode = function (callback) {
     });
   });
 
-  callback();
+  callback(function() { console.log("Hello")});
 };
 
 /**
@@ -110,10 +110,10 @@ var buildClient = function () {
   logger.info("Attempting to build client code.");
 
   // Copy the extension client code into lib/client.
-  copyClientCode(function () {
+  copyClientCode(function (callback) {
     var deployScript = path.join(__dirname, '../lib/client/tools/deploy.sh');
-    //var build = spawn(deployScript, ['-T'], { stdio: 'inherit' });
-    cleanup();
+    var build = spawn(deployScript, ['-T'], { stdio: 'inherit' });
+    callback();
   });
 
   /**
