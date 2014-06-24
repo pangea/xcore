@@ -138,7 +138,7 @@ app.use('/:org/api/v1alpha1/resources/:model', routes.rest_v1alpha1);
 app.use('/:org/api/v1alpha1/resources/*', routes.rest_v1alpha1);
 
 app.use('/', function(req, res) {
-  res.render('index', { title: 'Express' });
+  res.render('index', { title: 'xCore' });
 });
 
 /// catch 404 and forward to error handler

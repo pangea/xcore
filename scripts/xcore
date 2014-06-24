@@ -1,5 +1,9 @@
 #!/usr/bin/env node
 
+// Author: Christopher Rankin
+// Copyright: 2014 Pangea Real Estate
+
+
 // Load required libraries.
 var _ = require('underscore');
 var sys = require('sys');
@@ -96,6 +100,22 @@ var copyClientCode = function (callback) {
   _.each(manifests, function(manifest) {
     var clientCodeDir = path.join(__dirname, '../lib/extensions/', manifest.name, '/client');
     var dirs = fs.readdirSync(clientCodeDir);
+
+    if (_.contains(dirs, 'assets')) {
+      var idx = _.indexOf(dirs, 'assets');
+      dirs.splice(idx, 1);
+
+      exec('cp -R ' + path.join(__dirname, '../lib/extensions/xcore-gui/client/assets/') +
+      ' ' + path.join(__dirname, '../lib/client/assets/'),
+        function (err, stdout, stderr) {
+          if (err !== null) {
+            logger.error(err);
+            process.exit(1);
+          }
+        });
+
+    }
+
     _.each(dirs, function (dir) {
       var extDir = path.join(__dirname, '../lib/client/source/', dir, manifest.name);
 
@@ -104,11 +124,11 @@ var copyClientCode = function (callback) {
           logger.error(err);
           process.exit(1);
         }
-        
+
         exec('cp -R ' + clientCodeDir + '/' + dir + ' ' + extDir,
           function(err2, stdout2, stderr2) {
             if (err2 !== null) {
-              logger.error(err2);
+              logger.error('b:' + err2);
               process.exit(1);
             }
 
@@ -143,9 +163,33 @@ var buildClient = function () {
 
   // Copy the extension client code into lib/client.
   copyClientCode(function () {
-    var deployScript = path.join(__dirname, '../lib/client/tools/deploy.sh');
+    var deployScript = path.join(__dirname, '../lib/client/tools/deploy.sh -T');
     logger.info("Executing build...");
-    spawn(deployScript, ['-T'], { stdio: 'inherit' });
+    //spawn(deployScript, ['-T'], { stdio: 'inherit' });
+    exec(deployScript, function(err, stdout, stderr) {
+      if (err !== null) {
+        logger.error(err);
+      }
+      if (stderr) {
+        logger.error(stderr)
+      }
+
+      logger.info("Client built in lib/client/deploy");
+      logger.info("Copying build to datasource.");
+
+      // Concating css
+      var appCss = fs.readFileSync(path.join(__dirname, "../lib/client/deploy/build/app.css"), 'utf8');
+      var enyoCss = fs.readFileSync(path.join(__dirname, "../lib/client/deploy/build/enyo.css"), 'utf8');
+      var coreCss = enyoCss + appCss;
+
+      // Concating javascript
+      var appJs = fs.readFileSync(path.join(__dirname, "../lib/client/deploy/build/app.js"), 'utf8');
+      var enyoJs = fs.readFileSync(path.join(__dirname, "../lib/client/deploy/build/enyo.js"), 'utf8');
+      var coreJs = enyoJs + appJs;
+
+      fs.writeFileSync(path.join(__dirname, '../node-datasource/public/javascripts/core.js'), coreJs);
+      fs.writeFileSync(path.join(__dirname, '../node-datasource/public/stylesheets/core.css'), coreCss);
+    });
   });
 };
 
