@@ -1,0 +1,3 @@
+[submodule "enyo"]
+  path=lib/client
+  url=git://github.com/enyojs/bootplate.git
