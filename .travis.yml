@@ -11,7 +11,11 @@ install:
 before_script:
   - "source ~/.bashrc"
   - "npm install"
+  - "mkdir lib/extensions"
   - "cd node-datasource"
+  - "npm install"
+  - "mkdir public/javascripts"
+  - "../scripts/xcore build all"
   - "npm start &"
   - "sleep 10"
   - "cd .."
