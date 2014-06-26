@@ -207,37 +207,79 @@ var buildAll = function () {
   buildClient();
 };
 
+var testExtension = function(name) {
+  var Mocha = require('mocha');
+  var mocha = new Mocha;
+  
+  // use the method "addFile" on the mocha
+  // object for each file.
+  var extensionDir = path.join(__dirname, '../lib/extensions/', name);
+  fs.readdirSync(extensionDir).filter(function(file){
+    // Only keep the .js files
+    return file.substr(-3) === '.js';
+  }).forEach(function(file){
+    // add the file to mocha
+    mocha.addFile(
+      path.join(extensionDir, file)
+    );
+  });
+  
+  // run the tests.
+  mocha.run(function(failures){
+    process.on('exit', function () {
+      process.exit(failures);
+    });
+  });
+}
+
+var testAll = function() {
+  var extensionsDir = path.join(__dirname, '../lib/extensions/');
+  var dirs = fs.readdirSync(extensionsDir);
+  _.each(dirs, function (name) {
+    testExtension(name);
+  });  
+}
+
 // Handle the command line arguments.
 _.each(args._, function(arg, idx, argz) {
   switch(arg) {
 
     // Print usage information
-    case 'help':
-      console.log("Help & usage information will go here.");
-      process.exit(0);
-
+  case 'help':
+    console.log("Help & usage information will go here.");
+    process.exit(0);
+    
     // Print the xCore version
-    case 'version':
-      // Grab the version number from the package.json file.
-      var packageJson = fs.readFileSync(path.join(__dirname, "../package.json"));
-      console.log("Version: " + JSON.parse(packageJson).version);
-      process.exit(0);
-
+  case 'version':
+    // Grab the version number from the package.json file.
+    var packageJson = fs.readFileSync(path.join(__dirname, "../package.json"));
+    console.log("Version: " + JSON.parse(packageJson).version);
+    process.exit(0);
+    
     // Build the client, database or both.
-    case 'build':
-      toBuild = argz[idx+1];
-
-      switch(toBuild) {
-        case 'all':
-          buildAll();
-          break;
-        case 'client':
-          buildClient();
-          break;
-        case 'database':
-          buildDatabase();
-          break;
-      }
+  case 'build':
+    toBuild = argz[idx+1];
+    
+    switch(toBuild) {
+      case 'all':
+        buildAll();
+        break;
+      case 'client':
+        buildClient();
+        break;
+      case 'database':
+        buildDatabase();
+        break;
+    }
+    
+  case 'test':
+    toTest = argz[idx+1];
+    
+    if (toTest == 'all') {
+      testAll();
+    } else {
+      testExtension(toTest);
+    }    
   }
 
 });
