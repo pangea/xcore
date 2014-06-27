@@ -6,6 +6,7 @@
 
 // Load required libraries.
 var _ = require('underscore');
+var async = require('async');
 var sys = require('sys');
 var logger = require('winston');
 var fs = require('fs');
@@ -14,6 +15,8 @@ var cp = require('child_process');
 var spawn = cp.spawn;
 var exec = cp.exec;
 var args = require('minimist')(process.argv.slice(2));
+var dataSource = require('../node-datasource/lib/ext/datasource').dataSource;;
+//var databaseBuilder = require('./lib/build_database');
 
 // Enable color for the logger.
 logger.remove(logger.transports.Console);
@@ -55,8 +58,6 @@ var cleanup = function() {
 
   });
 };
-
-var buildDatabase = function () { logger.info("Attempting to build database."); };
 
 // Copies client code from the extensions into lib/client.
 var copyClientCode = function (callback) {
@@ -114,7 +115,7 @@ var copyClientCode = function (callback) {
           }
         });
 
-      exec('cp -R ' + path.join(__dirname, '../lib/extensions/xcore-gui/client/assets/') +
+      exec('cp -R ' + path.join(__dirname, '../lib/extensions/xcore-gui/client/assets/*') +
       ' ' + path.join(__dirname, '../node-datasource/public/images/'),
         function (err, stdout, stderr) {
           if (err !== null) {
@@ -202,6 +203,158 @@ var buildClient = function () {
   });
 };
 
+var resolvePath = function (f) {
+  var resolvedPath;
+
+	if (args.extension) {
+		var extensionDirs = fs.readdirSync(path.join(__dirname, '../lib/extensions'));
+	
+		if (_.contains(extensionDirs, f)) {
+			return path.join(__dirname, '../lib/extensions/', f);
+		}
+	}
+
+  if (f && f.substring(0, 1) === '/') {
+    resolvedPath = f;
+  } else if (f) {
+    resolvedPath = path.join(__dirname, '../', f);
+  }
+
+  return resolvedPath;
+};
+
+var getConfigAndCredentials = function() {
+	// Load the application configuration config.js.
+  var resolvedPath = resolvePath(args.config);
+  if (resolvedPath) {
+    config = require(resolvedPath);
+  } else {
+    config = require(path.join(__dirname, "../node-datasource/config.js"));
+  }
+
+	// Set Database Credentials
+	creds = config.databaseServer;
+	creds.host = creds.hostname;
+	creds.username = creds.user;
+
+	return {config: config, creds: creds}
+};
+
+// List registered extensions in database & append core dirs to list
+var getRegisteredExtensions = function (database, callback) {
+  var result,
+      credsClone = JSON.parse(JSON.stringify(getConfigAndCredentials.creds)),
+      existsSql = "select relname from pg_class where relname = 'ext'",
+      extSql = "SELECT * FROM xt.ext ORDER BY ext_load_order",
+
+      adaptExtensions = function (err, res) {
+        if (err) {
+          callback(err);
+          return;
+        }
+
+        var paths = _.map(res.rows, function (row) {
+          var location = row.ext_location,
+              name = row.ext_name,
+              extPath;
+
+          if (location === '/extensions') {
+            extPath = path.join(__dirname, "../../lib/extensions", name);
+          }
+
+          return extPath;
+        });
+
+        // Add orm to extensions paths.
+        paths.unshift(path.join(__dirname, "../../lib/orm")); // lib path
+
+        callback(null, {
+          extensions: paths,
+          database: database,
+          keepSql: options.keepSql,
+          wipeViews: options.wipeViews,
+          clientOnly: options.clientOnly,
+          databaseOnly: options.databaseOnly,
+          queryDirect: options.queryDirect
+        });
+      };
+
+  credsClone.database = database;
+  dataSource.query(existsSql, credsClone, function (err, res) {
+    if (err) {
+      callback(err);
+      return;
+    }
+    if (res.rowCount === 0) {
+      // xt.ext doesn't exist, because this is probably a brand-new DB.
+      // No problem! Give them empty set.
+      adaptExtensions(null, { rows: [] });
+    } else {
+      dataSource.query(extSql, credsClone, adaptExtensions);
+    }
+  });
+};
+
+var buildDatabase = function () {
+	var databases = [];
+  var cc = getConfigAndCredentials();
+	var config = cc.config;
+	var creds = cc.creds;
+	
+	// Configure which databases to build against
+	if (typeof args.database === 'string') {
+		databases.push(args.database);
+	} else {
+		databases = config.datasource.databases;
+	}
+
+  var buildSpecs;
+
+	// Initialize the database.
+	if (typeof args.backup === 'string') {
+		if (typeof args.database !== 'string') {
+			logger.error("You need to specify a database to backup using --database flag");
+			process.exit(1);
+		} else {
+			buildSpecs.database = args.database;
+			buildSpecs.backup = resolvePath(args.backup);
+			buildSpecs.initialize = true;
+			buildSpecs.wipeViews = args.wipeViews;
+			buildSpecs.queryDirect = args.queryDirect;
+
+			databaseBuilder.buildDatabase(buildSpecs, creds, function () {});
+		}
+	}
+
+	// Handle Extensions
+	if (typeof args.extension === 'string') {
+		buildSpecs = _.map(databases, function (database) {
+      var extension = resolvePath(args.extension);
+      return {
+        database: database,
+        keepSql: args.keepSql,
+        wipeViews: args.wipeViews,
+        queryDirect: args.queryDirect,
+        extensions: [extension]
+      };
+    });
+
+    if (args.unregister) {
+      databaseBuilder.unregister(buildSpecs, creds, function () {});
+    } else {
+      // Synchronous build
+      databaseBuilder.buildDatabase(buildSpecs, creds, function () {});
+    }
+
+	} else { // Build all registered extensions for the database.
+		async.map(databases, getRegisteredExtensions, function (err, results) {
+			// Asynchronous...
+			databaseBuilder.buildDatabase(results, creds, function () {});
+		});
+	}
+
+};
+
 var buildAll = function () {
   buildDatabase();
   buildClient();
@@ -235,8 +388,9 @@ _.each(args._, function(arg, idx, argz) {
           buildClient();
           break;
         case 'database':
+				console.log("calling");
           buildDatabase();
-          break;
+					break;
       }
   }
 
