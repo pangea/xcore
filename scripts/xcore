@@ -114,7 +114,7 @@ var copyClientCode = function (callback) {
           }
         });
 
-      exec('cp -R ' + path.join(__dirname, '../lib/extensions/', manifest.name, '/client/assets/') +
+      exec('cp -R ' + path.join(__dirname, '../lib/extensions/', manifest.name, '/client/assets/*') +
       ' ' + path.join(__dirname, '../node-datasource/public/images/'),
         function (err, stdout, stderr) {
           if (err !== null) {
