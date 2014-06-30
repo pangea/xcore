@@ -368,7 +368,8 @@ var testExtension = function(name) {
   
   // use the method "addFile" on the mocha
   // object for each file.
-  var extensionDir = path.join(__dirname, '../lib/extensions/', name);
+  var extensionDir = path.join(__dirname, '../lib/extensions/', name, 'test');
+console.log(extensionDir);
   fs.readdirSync(extensionDir).filter(function(file){
     // Only keep the .js files
     return file.substr(-3) === '.js';
@@ -426,6 +427,7 @@ _.each(args._, function(arg, idx, argz) {
         buildDatabase();
         break;
     }
+    process.exit(0);
     
   case 'test':
     toTest = argz[idx+1];
