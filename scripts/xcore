@@ -123,31 +123,32 @@ var copyExtensionCode = function (callback) {
 
   manifests = _.sortBy(manifests, 'loadOrder');
 
+  // Copy assets to the appropriate places
   _.each(manifests, function(manifest) {
-    var clientCodeDir = path.join(__dirname, '../lib/extensions/', manifest.name, '/client');
+    var clientCodeDir = path.join(__dirname, '../lib/extensions', manifest.name, 'client');
     var dirs = fs.readdirSync(clientCodeDir);
 
     if (_.contains(dirs, 'assets')) {
       var idx = _.indexOf(dirs, 'assets');
       dirs.splice(idx, 1);
 
-      exec('cp -R ' + path.join(__dirname, '../lib/extensions/xcore-gui/client/assets/') +
-      ' ' + path.join(__dirname, '../lib/client/assets/'),
-        function (err, stdout, stderr) {
-          if (err !== null) {
-            logger.error(err);
-            process.exit(1);
-          }
-        });
+      exec('cp -R ' + path.join(__dirname, '../lib/extensions', manifest.name ,'client/assets/') +
+           ' ' + path.join(__dirname, '../lib/client/assets/'),
+           function (err, stdout, stderr) {
+             if (err !== null) {
+               logger.error(err);
+               process.exit(1);
+             }
+           });
 
-      exec('cp -R ' + path.join(__dirname, '../lib/extensions/xcore-gui/client/assets/*') +
-      ' ' + path.join(__dirname, '../node-datasource/public/images/'),
-        function (err, stdout, stderr) {
-          if (err !== null) {
-            logger.error(err);
-            process.exit(1);
-          }
-        });
+      exec('cp -R ' + path.join(__dirname, '../lib/extensions', manifest.name ,'client/assets/*') +
+           ' ' + path.join(__dirname, '../node-datasource/public/images/'),
+           function (err, stdout, stderr) {
+             if (err !== null) {
+               logger.error(err);
+               process.exit(1);
+             }
+           });
 
     }
   });
