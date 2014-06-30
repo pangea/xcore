@@ -74,14 +74,15 @@ var copyApplicationCode = function(callback) {
 
   logger.info('Copying application code into client.');
   exec('cp ' + path.join(__dirname, '../source/app.js') + ' ' + path.join(__dirname, '../lib/client/source'),
-      function(err, stout, stderr) {
-        if(err) {
-          logger.error(err);
-          process.exit(1);
-        }
+       function(err, stout, stderr) {
+         if(err) {
+           logger.error(err);
+           logger.error(stderr);
+           process.exit(1);
+         }
 
-        copyExtensionCode(callback);
-      });
+         copyExtensionCode(callback);
+       });
 };
 
 // Copies client code from the extensions into lib/client.
@@ -403,14 +404,14 @@ _.each(args._, function(arg, idx, argz) {
     // Print usage information
   case 'help':
     console.log("Help & usage information will go here.");
-    process.exit(0);
+    break;
     
     // Print the xCore version
   case 'version':
     // Grab the version number from the package.json file.
     var packageJson = fs.readFileSync(path.join(__dirname, "../package.json"));
     console.log("Version: " + JSON.parse(packageJson).version);
-    process.exit(0);
+    break;
     
   // Build the client, database or both.
   case 'build':
@@ -427,7 +428,7 @@ _.each(args._, function(arg, idx, argz) {
         buildDatabase();
         break;
     }
-    process.exit(0);
+    break;
     
   case 'test':
     toTest = argz[idx+1];
