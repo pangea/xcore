@@ -8,7 +8,6 @@
 var _ = require('underscore');
 var async = require('async');
 var sys = require('sys');
-var logger = require('winston');
 var fs = require('fs');
 var path = require('path');
 var cp = require('child_process');
@@ -17,6 +16,7 @@ var exec = cp.exec;
 var args = require('minimist')(process.argv.slice(2));
 var dataSource = require('../node-datasource/lib/ext/datasource').dataSource;
 var databaseBuilder = require('./lib/build_database');
+var logger = require('winston');
 
 // Enable color for the logger.
 logger.remove(logger.transports.Console);
