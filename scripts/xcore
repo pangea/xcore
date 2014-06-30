@@ -132,7 +132,7 @@ var copyExtensionCode = function (callback) {
       var idx = _.indexOf(dirs, 'assets');
       dirs.splice(idx, 1);
 
-      exec('cp -R ' + path.join(__dirname, '../lib/extensions', manifest.name ,'client/assets/') +
+      exec('cp -R ' + path.join(__dirname, '../lib/extensions', manifest.name ,'client/assets/*') +
            ' ' + path.join(__dirname, '../lib/client/assets/'),
            function (err, stdout, stderr) {
              if (err !== null) {
@@ -141,8 +141,8 @@ var copyExtensionCode = function (callback) {
              }
            });
 
-      exec('cp -R ' + path.join(__dirname, '../lib/extensions', manifest.name ,'client/assets/*') +
-           ' ' + path.join(__dirname, '../node-datasource/public/images/'),
+      exec('cp -R ' + path.join(__dirname, '../lib/extensions', manifest.name ,'client/assets') +
+           ' ' + path.join(__dirname, '../node-datasource/public/images', manifest.name),
            function (err, stdout, stderr) {
              if (err !== null) {
                logger.error(err);
