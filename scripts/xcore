@@ -59,8 +59,33 @@ var cleanup = function() {
   });
 };
 
+var copyClientCode = function(callback) {
+  copyApplicationCode(callback);
+};
+
+var copyApplicationCode = function(callback) {
+  logger.info('Generating tools package.');
+  // TODO: Better way to load tools
+  var toolsPackage = 'enyo.depends(\n';
+  toolsPackage += '"' + path.join(__dirname, '../node_modules/underscore/underscore-min.js') + '"';
+  toolsPackage += '\n);';
+
+  fs.writeFileSync(path.join(__dirname, '../lib/client/source/tools/package.js'), toolsPackage);
+
+  logger.info('Copying application code into client.');
+  exec('cp ' + path.join(__dirname, '../source/app.js') + ' ' + path.join(__dirname, '../lib/client/source'),
+      function(err, stout, stderr) {
+        if(err) {
+          logger.error(err);
+          process.exit(1);
+        }
+
+        copyExtensionCode(callback);
+      });
+};
+
 // Copies client code from the extensions into lib/client.
-var copyClientCode = function (callback) {
+var copyExtensionCode = function (callback) {
   // Collect all the extension manifest and and sort by load order.
   logger.info("Copying extensions into client.");
   var manifests = getExtensionManifests(),
