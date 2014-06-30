@@ -150,43 +150,19 @@ var copyExtensionCode = function (callback) {
         });
 
     }
-
-    _.each(dirs, function (dir) {
-      var extDir = path.join(__dirname, '../lib/client/source/', dir, manifest.name);
-
-      exec('rm -rf ' + extDir, function (err, stdout, stderr) {
-        if (err !== null) {
-          logger.error(err);
-          process.exit(1);
-        }
-
-        exec('cp -R ' + clientCodeDir + '/' + dir + ' ' + extDir,
-          function(err2, stdout2, stderr2) {
-            if (err2 !== null) {
-              logger.error('b:' + err2);
-              process.exit(1);
-            }
-
-            var newPackageJS = "enyo.depends(\n";
-            var existingFiles = fs.readdirSync(path.join(__dirname, "../lib/client/source/", dir));
-            var extensionFiles = fs.readdirSync(clientCodeDir + '/' + dir);
-
-            // Copy the files that already exist back into the new package.js.
-            newPackageJS += buildPackageString(existingFiles);
-
-            newPackageJS += ");";
-
-            // Tell enyo to depend on this code.
-            var depFile = path.join(__dirname, "../lib/client/source/"+dir+"/package.js");
-            fs.writeFileSync(depFile, newPackageJS);
-          }
-        );
-      });
-    });
-
   });
 
-  callback();
+  var extPackage = 'enyo.depends(\n';
+  _.reduce(manifests, function(package, manifest, index) {
+    package += '"' + path.join(__dirname, '../lib/extensions', manifest.name, 'client') + '"';
+    if(index !== manifests.length) {
+      package += ',';
+    }
+    return package + '\n';
+  }, extPackage);
+  extPackage += ');';
+
+  fs.writeFile(path.join(__dirname, '../lib/client/extensions'), extPackage, callback);
 };
 
 /**
