@@ -425,6 +425,7 @@ _.each(args._, function(arg, idx, argz) {
         buildDatabase();
         break;
     }
+    process.exit(0);
     
   case 'test':
     toTest = argz[idx+1];
