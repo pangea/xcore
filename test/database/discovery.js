@@ -9,7 +9,7 @@ regexp:true, undef:true, strict:true, trailing:true, white:true */
 		mocha			= require("mocha"),
     assert		= require("chai").assert;
 
-  var loginData		= require('../lib/login_data'),
+  var loginData		= require('../lib/login_data').data,
     database			= loginData.org,
     host					= loginData.webaddress || "https://localhost",
     delimiter			= host.charAt(host.length - 1) === "/" ? "" : "/",
