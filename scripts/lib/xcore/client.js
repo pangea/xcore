@@ -15,7 +15,7 @@ var _				= require('underscore'),
 	    if (dir == '.git') { return true; }
 	    try {
 	    var contents = fs.readFileSync(path.join(
-	      __dirname, '../../../lib/extensions', dir, '/database/source/manifest.js'), 'utf8'),
+	      __dirname,'../../../lib/extensions', dir, '/database/source/manifest.js'), 'utf8'),
 	      manifest = JSON.parse(contents);
 	
 	      manifests[manifest.name] = manifest;
@@ -27,8 +27,34 @@ var _				= require('underscore'),
 	  return manifests;
 	};
 	
+	var copyClientCode = function(callback) {
+	  copyApplicationCode(callback);
+	};
+	
+	var copyApplicationCode = function(callback) {
+	  logger.info('Generating tools package.');
+	  // TODO: Better way to load tools
+	  var toolsPackage = 'enyo.depends(\n';
+	  toolsPackage += '"' + path.join(__dirname, '../../../node_modules/underscore/underscore-min.js') + '"';
+	  toolsPackage += '\n);';
+	
+	  fs.writeFileSync(path.join(__dirname, '../../../lib/client/source/tools/package.js'), toolsPackage);
+	
+	  logger.info('Copying application code into client.');
+	  exec('cp ' + path.join(__dirname, '../../../source/app.js') + ' ' + path.join(__dirname, '../../../lib/client/source'),
+	       function(err, stout, stderr) {
+	         if(err) {
+	           logger.error(err);
+	           logger.error(stderr);
+	           process.exit(1);
+	         }
+	
+	         copyExtensionCode(callback);
+	       });
+	};
+	
 	// Copies client code from the extensions into lib/client.
-	var copyClientCode = function (callback) {
+	var copyExtensionCode = function (callback) {
 	  // Collect all the extension manifest and and sort by load order.
 	  logger.info("Copying extensions into client.");
 	  var manifests = getExtensionManifests(),
@@ -66,73 +92,49 @@ var _				= require('underscore'),
 	
 	  manifests = _.sortBy(manifests, 'loadOrder');
 	
+	  // Copy assets to the appropriate places
 	  _.each(manifests, function(manifest) {
-	    var clientCodeDir = path.join(__dirname, '../../../lib/extensions/', manifest.name, '/client');
+	    var clientCodeDir = path.join(__dirname, '../../../lib/extensions', manifest.name, 'client');
 	    var dirs = fs.readdirSync(clientCodeDir);
 	
 	    if (_.contains(dirs, 'assets')) {
 	      var idx = _.indexOf(dirs, 'assets');
 	      dirs.splice(idx, 1);
 	
-	      exec('cp -R ' + path.join(__dirname, '../../../lib/extensions/xcore-gui/client/assets/') +
-	      ' ' + path.join(__dirname, '../../../lib/client/assets/'),
-	        function (err, stdout, stderr) {
-	          if (err !== null) {
-	            logger.error(err);
-	            process.exit(1);
-	          }
-	        });
+	      exec('cp -R ' + path.join(__dirname, '../../../lib/extensions', manifest.name ,'client/assets/*') +
+	           ' ' + path.join(__dirname, '../../../lib/client/assets/'),
+	           function (err, stdout, stderr) {
+	             if (err !== null) {
+	               logger.error(err);
+	               process.exit(1);
+	             }
+	           });
 	
-	      exec('cp -R ' + path.join(__dirname, '../../../lib/extensions/xcore-gui/client/assets/*') +
-	      ' ' + path.join(__dirname, '../../../node-datasource/public/images/'),
-	        function (err, stdout, stderr) {
-	          if (err !== null) {
-	            logger.error(err);
-	            process.exit(1);
-	          }
-	        });
+	      exec('cp -R ' + path.join(__dirname, '../../../lib/extensions', manifest.name ,'client/assets') +
+	           ' ' + path.join(__dirname, '../../../node-datasource/public/images', manifest.name),
+	           function (err, stdout, stderr) {
+	             if (err !== null) {
+	               logger.error(err);
+	               process.exit(1);
+	             }
+	           });
 	
 	    }
-	
-	    _.each(dirs, function (dir) {
-	      var extDir = path.join(__dirname, '../../../lib/client/source/', dir, manifest.name);
-	
-	      exec('rm -rf ' + extDir, function (err, stdout, stderr) {
-	        if (err !== null) {
-	          logger.error(err);
-	          process.exit(1);
-	        }
-	
-	        exec('cp -R ' + clientCodeDir + '/' + dir + ' ' + extDir,
-	          function(err2, stdout2, stderr2) {
-	            if (err2 !== null) {
-	              logger.error('b:' + err2);
-	              process.exit(1);
-	            }
-	
-	            var newPackageJS = "enyo.depends(\n";
-	            var existingFiles = fs.readdirSync(path.join(__dirname, "../../../lib/client/source/", dir));
-	            var extensionFiles = fs.readdirSync(clientCodeDir + '/' + dir);
-	
-	            // Copy the files that already exist back into the new package.js.
-	            newPackageJS += buildPackageString(existingFiles);
-	
-	            newPackageJS += ");";
-	
-	            // Tell enyo to depend on this code.
-	            var depFile = path.join(__dirname, "../../../lib/client/source/"+dir+"/package.js");
-	            fs.writeFileSync(depFile, newPackageJS);
-	          }
-	        );
-	      });
-	    });
-	
 	  });
 	
-	  callback();
+	  var extPackage = 'enyo.depends(\n';
+	  _.reduce(manifests, function(pkg, manifest, index) {
+	    pkg += '"' + path.join(__dirname, '../../../lib/extensions', manifest.name, 'client') + '"';
+	    if(index !== manifests.length) {
+	      pkg += ',';
+	    }
+	    return pkg + '\n';
+	  }, extPackage);
+	  extPackage += ');';
+	
+	  fs.writeFile(path.join(__dirname, '../../../lib/client/extensions'), extPackage, callback);
 	};
-
-
+	
 	/**
 	  * Link extension client code to enyo's lib folder then run the enyo deploy.sh
 	  * script. The compiled client code should be in the lib/client/build folder.
@@ -147,9 +149,11 @@ var _				= require('underscore'),
 	    exec(deployScript, function(err, stdout, stderr) {
 	      if (err !== null) {
 	        logger.error(err);
+					process.exit(1);
 	      }
 	      if (stderr) {
 	        logger.error(stderr)
+					process.exit(1);
 	      }
 	
 	      logger.info("Client built in lib/client/deploy");
@@ -170,5 +174,7 @@ var _				= require('underscore'),
 	    });
 	  });
 	};
+
+
 
 }());
