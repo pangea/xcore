@@ -154,17 +154,30 @@ var copyExtensionCode = function (callback) {
     }
   });
 
-  var extPackage = 'enyo.depends(\n';
-  _.reduce(manifests, function(package, manifest, index) {
-    package += '"' + path.join(__dirname, '../lib/extensions', manifest.name, 'client') + '"';
-    if(index !== manifests.length) {
-      package += ',';
+  var extPackage = _.reduce(manifests, function(package, manifest, index) {
+    if(index !== 0) {
+      package += ',\n';
     }
-    return package + '\n';
-  }, extPackage);
-  extPackage += ');';
+    package += '"' + path.join(__dirname, '../lib/extensions', manifest.name, 'client') + '"';
+    return package;
+  }, 'enyo.depends(\n');
+  extPackage += '\n);';
 
-  fs.writeFile(path.join(__dirname, '../lib/client/extensions'), extPackage, callback);
+  fs.writeFile(
+    path.join(__dirname, '../lib/client/source/extensions/package.js'),
+    extPackage,
+    {
+      encoding: 'utf8'
+    },
+    function(err, stdout, stderr) {
+      if(err) {
+        logger.error(err);
+        process.exit(1);
+      }
+
+      callback();
+    }
+  );
 };
 
 /**
