@@ -1,216 +1,181 @@
-#!/usr/bin/env node
+// @author: Christopher Rankin
+
+var _							= require('underscore'),
+		async					= require('async'),
+		exec					= require('child_process').exec,
+		fs						= require('fs'),
+		ormInstaller	= require('../orm'),
+		path					= require('path'),
+		pg						= require('pg'),
+		dataSource		= require('../../../node-datasource/lib/ext/datasource').dataSource;
+		logger				= require('./logger').logger;
 
 (function () {
 	"use strict";
+	
+  var jsInit = "select xt.js_init();";
 
-	exports.buildDatabase = function (options, callback) {
-	  var buildSpecs = {},
-	      databases = [],
-	      extension,
-	      config,
-	
-	    // Resolve the correct path for file. "/direct/path/" vs "../../relative"
-	      resolvePath = function (f) {
-	        var resolvedPath;
-	
-	        if (f && f.substring(0, 1) === '/') {
-	          resolvedPath = f;
-	        } else if (f) {
-	          resolvedPath = path.join(process.cwd(), f);
-	        }
-	
-	        return resolvedPath;
-	      },
-	
-	      // List registered extensions in database & append core dirs to list
-	      getRegisteredExtensions = function (database, callback) {
-	        var result,
-	            credsClone = JSON.parse(JSON.stringify(creds)),
-	            existsSql = "select relname from pg_class where relname = 'ext'",
-	            extSql = "SELECT * FROM xt.ext ORDER BY ext_load_order",
-	
-	            adaptExtensions = function (err, res) {
-	              if (err) {
-	                callback(err);
-	                return;
-	              }
-	
-	              var paths = _.map(res.rows, function (row) {
-	                var location = row.ext_location,
-	                    name = row.ext_name,
-	                    extPath;
-	
-	                if (location === '/extensions') {
-	                  extPath = path.join(__dirname, "../../lib/extensions", name);
-	                }
-	
-	                return extPath;
-	              });
-	
-	              // Add orm to extensions paths.
-	              paths.unshift(path.join(__dirname, "../../lib/orm")); // lib path
-	
-	              callback(null, {
-	                extensions: paths,
-	                database: database,
-	                keepSql: options.keepSql,
-	                wipeViews: options.wipeViews,
-	                clientOnly: options.clientOnly,
-	                databaseOnly: options.databaseOnly,
-	                queryDirect: options.queryDirect
-	              });
-	            };
-	
-	        credsClone.database = database;
-	        dataSource.query(existsSql, credsClone, function (err, res) {
-	          if (err) {
-	            callback(err);
-	            return;
-	          }
-	          if (res.rowCount === 0) {
-	            // xt.ext doesn't exist, because this is probably a brand-new DB.
-	            // No problem! Give them empty set.
-	            adaptExtensions(null, { rows: [] });
-	          } else {
-	            dataSource.query(extSql, credsClone, adaptExtensions);
-	          }
-	        });
-	      },
-	
-	      // Build the application according to the buildSpecs
-	      buildToSpec = function (specs, creds, buildCallback) {
-	        buildClient(specs, function (err, res) {
-	          if (err) {
-	            buildCallback(err);
-	            return;
-	          }
-	          buildDatabase(specs, creds, function (databaseErr, databaseRes) {
-	            var returnMessage;
-	            if (databaseErr && specs[0].wipeViews) {
-	              buildCallback(databaseErr);
-	              return;
-	
-	            } else if (databaseErr) {
-	              buildCallback("Build failed. Try wiping the views next time by running me with the -w flag.");
-	              return;
-	            }
-	            returnMessage = "\n";
-	            _.each(specs, function (spec) {
-	              returnMessage += "Database: " + spec.database + '\nDirectories:\n';
-	              _.each(spec.extensions, function (ext) {
-	                returnMessage += '  ' + ext + '\n';
-	              });
-	            });
-	            buildCallback(null, "Build succeeded." + returnMessage);
-	          });
-	        });
-	      };
-	
-	  /**
-	   * Go through the commander options and build the app accordingly.
-	   *
-	   *   -b, --backup [/path/to/the.backup], Location of database backup file. Must be used with the -i flag.
-	   *   -c, --config [/path/to/alternate_config.js], Location of datasource config file. [config.js]
-	   *   -d, --database [database name], Use specific database. [All databases in config file.]
-	   *   -e, --extension [/path/to/extension], Extension to build. [Core plus all extensions registered for the database.]
-	   *   -i, --initialize, Initialize database. Must be used with the -b flag.
-	   *   -k, --keepsql, Do not delete the temporary sql files that represent the payload of the build.
-	   *   -q, --querydirect, Query the database directly, without delegating to psql.
-	   *   -u, --unregister, Unregister an extension.
-	   *   -w, --wipeviews, Drop the views and the orm registrations pre-emptively.
-	   *   -y, --clientonly, Only rebuild the client.
-	   *   -z, --databaseonly', Only rebuild the database.
-	   */
-	  
-		// Load the application configuration config.js.
-	  var resolvedPath = resolvePath(options.config);
-	  if (resolvedPath) {
-	    config = require(resolvedPath);
-	  } else {
-	    config = require(path.join(__dirname, "../node-datasource/config.js"));
-	  }
-	
-	  // Set Database Credentials
-	  creds = config.databaseServer;
-	  creds.host = creds.hostname; // adapt our lingo to node-postgres lingo
-	  creds.username = creds.user; // adapt our lingo to orm installer lingo
-	
-	  // Build all databases in node-datasource/config.js unless the user set.
-	  if (options.database) {
-	    databases.push(options.database);
-	  } else {
-	    databases = config.datasource.databases;
-	  }
-	
-	  // The user should set both clientOnly & databaseOnly flags. Warn them!
-	  if (options.clientOnly && options.databaseOnly) {
-	    callback("You set both clientOnly & databaseOnly flags. Use only one.");
-	  }
-	
-	  // Initialize the database. This is serious business, and we only do it if
-	  // the user does all the arguments correctly. Must be on one database only,
-	  // with no extensions, with the initialize flag, and with a backup file.
-	  if (
-	      options.initialize &&
-	      options.backup &&
-	      options.database &&
-	      !options.extension
-	  ) {
-	
-	    buildSpecs.database = options.database;
-	    buildSpecs.backup = resolvePath(options.backup);
-	    buildSpecs.initialize = true;
-	    buildSpecs.keepSql = options.keepSql;
-	    buildSpecs.wipeViews = options.wipeViews;
-	    buildSpecs.clientOnly = options.clientOnly;
-	    buildSpecs.databaseOnly = options.databaseOnly;
-	    buildSpecs.queryDirect = options.queryDirect;
-	    buildSpecs.extensions = [
-	      path.join(__dirname, '../lib/orm')
-	    ];
-	
-	    buildToSpec([buildSpecs], creds, callback);
-	  }
-	
-	  // Alert the user they must also specify a database.
-	  else if (options.initialize || options.backup) {
-	    callback(
-	      "You want to initialize the database with a backup but you didn't " +
-	      "tell us which database to use. Specifiy the database with the -d flag."
-	    );
-	
-	  }
-	
-	  // The user has specified an extension to build or unregister.
-	  else if (options.extension) {
-	    buildSpecs = _.map(databases, function (database) {
-	      var extension = resolvePath(options.extension);
-	      return {
-	        database: database,
-	        keepSql: options.keepSql,
-	        wipeViews: options.wipeViews,
-	        clientOnly: options.clientOnly,
-	        databaseOnly: options.databaseOnly,
-	        queryDirect: options.queryDirect,
-	        extensions: [extension]
-	      };
-	    });
-	
-	    if (options.unregister) {
-	      unregister(buildSpecs, creds, callback);
-	    } else {
-	      // synchronous build
-	      buildToSpec(buildSpecs, creds, callback);
-	    }
-	  }
-	
-	  // Build all registered extensions for the database
-	  else {
-	    async.map(databases, getRegisteredExtensions, function (err, results) {
-	      // asynchronous...
-	      buildToSpec(results, creds, callback);
-	    });
-	  }
-	
+	/**
+		* Queries can be sent via the REST service or psql. They sare the
+		* same interface. However I'm not sure how I feel about having
+		* options argument on both just to set "keepsql". Should we 
+		* really be passing the whole arguments has in here? We probably
+		* want to find a better way of handling this.
+		*/
+
+	// Send query via REST service.
+	var sendToDatabaseDatasource = function (query, creds, options, callback) {
+	  dataSource.query(query, creds, callback);
 	};
-});
+	
+	// Execute psql command locally.
+	var sendToDatabasePsql = function (query, creds, options, callback) {
+	  var filename = path.join(__dirname, "../../sql/temp_query_" + creds.database + ".sql");
+	  fs.writeFile(filename, query, function (err) {
+	    if (err) {
+	      logger.error("Cannot write query to file: " + filename);
+	      callback(err);
+	      return;
+	    }
+	    var psqlCommand = 'psql -d ' + creds.database +
+	          ' -U ' + creds.username +
+	          ' -h ' + creds.hostname +
+	          ' -p ' + creds.port +
+	          ' -f ' + filename +
+	          ' --single-transaction';
+	    exec(psqlCommand, {maxBuffer: 40000 * 1024 /* 20x default */}, function (err, stdout, stderr) {
+	      if (err) {
+	        logger.error("Cannot install file ", filename);
+	        callback(err);
+	        return;
+	      }
+	      if (options.keepsql) {
+	        // Do not delete the temp query file
+	        logger.info("SQL file kept as ", filename);
+	        callback();
+	      } else {
+	        fs.unlink(filename, function (err) {
+	          if (err) {
+	            logger.error("Cannot delete written query file.");
+	            callback(err);
+	          }
+	          callback();
+	        });
+	      }
+	    });
+	  });
+	};
+
+	var setQuerySender = function(direct) {
+		var sender;
+		var psqlPrepend = null;
+
+		if (direct) {
+			sender = sendToDatabaseDatasource;	
+		}
+		else {
+			sender = sendToDatabasePsql;
+
+			/**
+				* Without this, when we delegate to exec psql 
+				* the err var will not be set even on the case of error.
+			*/
+			psqlPrepend = "\\set ON_ERROR_STOP TRUE;\n";
+		}
+
+		return {
+			send: sender,
+			psqlPrepend: psqlPrepend
+		};
+	};
+
+	var readConfig = function (opts) {
+		var creds,
+				config = require(
+					path.join(__dirname, "../../../node-datasource/config.js")),
+				databases = [];
+
+    // Set Database Credentials
+    creds = config.databaseServer;
+    creds.host = creds.hostname; // adapt our lingo to node-postgres lingo
+    creds.username = creds.user; // adapt our lingo to orm installer lingo
+
+    // Build all databases in node-datasource/config.js unless the user set.
+    if (opts.database) {
+      databases = [opts.database];
+    } else {
+      databases = config.datasource.databases;
+    }
+
+		return {
+			config: config, 
+			creds: creds, 
+			databases: databases
+		}; 
+	};
+
+	// Entry point to build databse. Work is delegated from here.	
+	exports.buildDatabase = function (opts) {
+		// Opts has all command line arguments. Probably want to remove
+		// opts._ in the caller.
+	
+		var configs = readConfig(opts),
+				config = configs.config, 
+				creds = configs.creds, 
+				databases = configs.databases;
+
+		var querySender = setQuerySender(opts.querydirect);
+
+		_.each(databases, function (database) {
+			logger.info("Wiping views from: " + database);
+			// Wipe the views from the database.
+			if (opts.wipeviews) {
+				fs.readFile(path.join(
+					__dirname, 
+					"../../sql/delete_system_orms.sql"
+				),
+				function (err, wipeSql) {
+    	 	  if (err) {
+						logger.error("Unable to wipe views: ", err);
+						process.exit(1);
+    	 	  }
+
+					wipeSql += jsInit + wipeSql;
+					
+					if (!opts.querydirect) {
+						// Using psql, make sure error set.
+						wipeSql += querySender.psqlPrepend;
+					}
+					
+					creds.database = database;
+
+					querySender.send(
+						wipeSql, creds, opts, function (err, res) {
+							if (err) {
+								logger.error(err);
+								process.exit(1);
+							}
+							else {
+								logger.info("Success!");
+								process.exit(0);
+							}
+						}	
+					); 
+
+    	 	});
+
+			}
+
+			// User wants to only build the DB for this extension.
+			if (opts.extension) {
+				
+			} else { // Let's assume they want to build the whole DB.
+
+			}
+
+		});
+
+			
+	};
+
+}());
