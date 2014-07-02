@@ -154,7 +154,7 @@
      * @returns {Boolean} true
      */
     extensionIsValid: function(extension) {
-      _.each(this.requiredExtensionFields, function(field) {
+      _.each(this._requiredExtensionFields, function(field) {
         if(!extension[field]) {
           throw "extension " + extension.name + " is missing required field " + field;
         }

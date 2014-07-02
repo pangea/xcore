@@ -42,6 +42,7 @@
     "xmla4js": "latest"
   },
   "devDependencies": {
+    "sinon": "latest",
     "chai": "latest",
     "mocha": "latest",
     "require-uncache": "latest",
