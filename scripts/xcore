@@ -3,436 +3,67 @@
 // Author: Christopher Rankin
 // Copyright: 2014 Pangea Real Estate
 
+var _							= require('underscore'),
+		async					= require('async'),
+		fs						= require('fs'),
+		path					=	require('path'),
+		args					= require('minimist')(process.argv.slice(2)),
+		buildDatabase = require('./lib/xcore/database').buildDatabase,
+		buildClient		= require('./lib/xcore/client').buildClient,
+		xTest					= require('./lib/xcore/test'),
+		logger				= require('./lib/xcore/logger').logger;
 
-// Load required libraries.
-var _ = require('underscore');
-var async = require('async');
-var sys = require('sys');
-var logger = require('winston');
-var fs = require('fs');
-var path = require('path');
-var cp = require('child_process');
-var spawn = cp.spawn;
-var exec = cp.exec;
-var args = require('minimist')(process.argv.slice(2));
-var dataSource = require('../node-datasource/lib/ext/datasource').dataSource;
-var databaseBuilder = require('./lib/build_database');
-
-// Enable color for the logger.
-logger.remove(logger.transports.Console);
-logger.add(logger.transports.Console, {colorize: true});
-
-var getExtensionManifests = function() {
-  var extensionDirs = fs.readdirSync(path.join(__dirname, '../lib/extensions')),
-      manifests = {};
-
-  _.each(extensionDirs, function(dir, idx, dirs) {
-    if (dir == '.git') { return true; }
-    try {
-    var contents = fs.readFileSync(path.join(
-      __dirname,'../lib/extensions', dir, '/database/source/manifest.js'), 'utf8'),
-      manifest = JSON.parse(contents);
-
-      manifests[manifest.name] = manifest;
-    } catch (err) {
-      logger.error(err);
-    }
-  });
-
-  return manifests;
-};
-
-// Removes extension code from client.
-var cleanup = function() {
-  logger.info("Removing extension code from client.");
-
-  var manifests = getExtensionManifests();
-
-  _.each(manifests, function(manifest) {
-    var clientCodeDir = path.join(__dirname, '../lib/extensions/', manifest.name, '/client');
-    var dirs = fs.readdirSync(clientCodeDir);
-    _.each(dirs, function (dir) {
-      var extDir = path.join(__dirname, '../lib/client/source/', dir, manifest.name);
-      exec('rm -rf ' + extDir);
-    });
-
-  });
-};
-
-// Copies client code from the extensions into lib/client.
-var copyClientCode = function (callback) {
-  // Collect all the extension manifest and and sort by load order.
-  logger.info("Copying extensions into client.");
-  var manifests = getExtensionManifests(),
-      buildPackageString = function (files) {
-        var dependList = '';
-        _.each(files, function (f) {
-          if (f !== 'package.js') {
-            dependList += '"'+f+'"';
-
-            if (f !== _.last(files)) {
-              dependList += ',';
-            }
-
-            dependList += '\n';
-          }
-        });
-        return dependList;
-      };
-
-  _.each(manifests, function(manifest) {
-    if(manifest.dependencies) {
-      _.each(manifest.dependencies, function (depName) {
-        var depManifest = manifests[depName];
-        if(depManifest.loadOrder > manifest.loadOrder) {
-          logger.error(
-            "Extension '%s' has a load order of %s. It's dependent '%s' has a load order of %s. " +
-            "Extensions can't have a lower load order than their dependencies.",
-            manifest.name, manifest.loadOrder, depManifest.name, depManifest.loadOrder
-          );
-          process.exit(1);
-        }
-      });
-    }
-  });
-
-  manifests = _.sortBy(manifests, 'loadOrder');
-
-  _.each(manifests, function(manifest) {
-    var clientCodeDir = path.join(__dirname, '../lib/extensions/', manifest.name, '/client');
-    var dirs = fs.readdirSync(clientCodeDir);
-
-    if (_.contains(dirs, 'assets')) {
-      var idx = _.indexOf(dirs, 'assets');
-      dirs.splice(idx, 1);
-
-      exec('cp -R ' + path.join(__dirname, '../lib/extensions/', manifest.name, '/client/assets/') +
-      ' ' + path.join(__dirname, '../lib/client/assets/'),
-        function (err, stdout, stderr) {
-          if (err !== null) {
-            logger.error(err);
-            process.exit(1);
-          }
-        });
-
-      exec('cp -R ' + path.join(__dirname, '../lib/extensions/', manifest.name, '/client/assets/*') +
-      ' ' + path.join(__dirname, '../node-datasource/public/images/'),
-        function (err, stdout, stderr) {
-          if (err !== null) {
-            logger.error(err);
-            process.exit(1);
-          }
-        });
-
-    }
-
-    _.each(dirs, function (dir) {
-      var extDir = path.join(__dirname, '../lib/client/source/', dir, manifest.name);
-
-      exec('rm -rf ' + extDir, function (err, stdout, stderr) {
-        if (err !== null) {
-          logger.error(err);
-          process.exit(1);
-        }
-
-        exec('cp -R ' + clientCodeDir + '/' + dir + ' ' + extDir,
-          function(err2, stdout2, stderr2) {
-            if (err2 !== null) {
-              logger.error('b:' + err2);
-              process.exit(1);
-            }
-
-            var newPackageJS = "enyo.depends(\n";
-            var existingFiles = fs.readdirSync(path.join(__dirname, "../lib/client/source/", dir));
-            var extensionFiles = fs.readdirSync(clientCodeDir + '/' + dir);
-
-            // Copy the files that already exist back into the new package.js.
-            newPackageJS += buildPackageString(existingFiles);
-
-            newPackageJS += ");";
-
-            // Tell enyo to depend on this code.
-            var depFile = path.join(__dirname, "../lib/client/source/"+dir+"/package.js");
-            fs.writeFileSync(depFile, newPackageJS);
-          }
-        );
-      });
-    });
-
-  });
-
-  callback();
-};
-
-/**
-  * Link extension client code to enyo's lib folder then run the enyo deploy.sh
-  * script. The compiled client code should be in the lib/client/build folder.
-*/
-var buildClient = function () {
-  logger.info("Attempting to build client code.");
-
-  // Copy the extension client code into lib/client.
-  copyClientCode(function () {
-    var deployScript = path.join(__dirname, '../lib/client/tools/deploy.sh -T');
-    logger.info("Executing build...");
-    //spawn(deployScript, ['-T'], { stdio: 'inherit' });
-    exec(deployScript, function(err, stdout, stderr) {
-      if (err !== null) {
-        logger.error(err);
-      }
-      if (stderr) {
-        logger.error(stderr)
-      }
-
-      logger.info("Client built in lib/client/deploy");
-      logger.info("Copying build to datasource.");
-
-      // Concating css
-      var appCss = fs.readFileSync(path.join(__dirname, "../lib/client/deploy/build/app.css"), 'utf8');
-      var enyoCss = fs.readFileSync(path.join(__dirname, "../lib/client/deploy/build/enyo.css"), 'utf8');
-      var coreCss = enyoCss + appCss;
-
-      // Concating javascript
-      var appJs = fs.readFileSync(path.join(__dirname, "../lib/client/deploy/build/app.js"), 'utf8');
-      var enyoJs = fs.readFileSync(path.join(__dirname, "../lib/client/deploy/build/enyo.js"), 'utf8');
-      var coreJs = enyoJs + appJs;
-
-      fs.writeFileSync(path.join(__dirname, '../node-datasource/public/javascripts/core.js'), coreJs);
-      fs.writeFileSync(path.join(__dirname, '../node-datasource/public/stylesheets/core.css'), coreCss);
-    });
-  });
-};
-
-var resolvePath = function (f) {
-  var resolvedPath;
-
-	if (args.extension) {
-		var extensionDirs = fs.readdirSync(path.join(__dirname, '../lib/extensions'));
+if (args._.length > 0) {
+	// Handle the command line arguments.
+	_.each(args._, function(arg, idx, argz) {
+	  switch(arg) {
 	
-		if (_.contains(extensionDirs, f)) {
-			return path.join(__dirname, '../lib/extensions/', f);
-		}
-	}
-
-  if (f && f.substring(0, 1) === '/') {
-    resolvedPath = f;
-  } else if (f) {
-    resolvedPath = path.join(__dirname, '../', f);
-  }
-
-  return resolvedPath;
-};
-
-var getConfigAndCredentials = function() {
-	// Load the application configuration config.js.
-  var resolvedPath = resolvePath(args.config);
-  if (resolvedPath) {
-    config = require(resolvedPath);
-  } else {
-    config = require(path.join(__dirname, "../node-datasource/config.js"));
-  }
-
-	// Set Database Credentials
-	creds = config.databaseServer;
-	creds.host = creds.hostname;
-	creds.username = creds.user;
-
-	return {config: config, creds: creds}
-};
-
-// List registered extensions in database & append core dirs to list
-var getRegisteredExtensions = function (database, callback) {
-  var result,
-      credsClone = JSON.parse(JSON.stringify(getConfigAndCredentials().creds)),
-      existsSql = "select relname from pg_class where relname = 'ext'",
-      extSql = "SELECT * FROM xt.ext ORDER BY ext_load_order",
-
-      adaptExtensions = function (err, res) {
-        if (err) {
-          callback(err);
-          return;
-        }
-
-        var paths = _.map(res.rows, function (row) {
-          var location = row.ext_location,
-              name = row.ext_name,
-              extPath;
-
-          if (location === '/extensions') {
-            extPath = path.join(__dirname, "../../lib/extensions", name);
-          }
-
-          return extPath;
-        });
-
-        // Add orm to extensions paths.
-        paths.unshift(path.join(__dirname, "../../lib/orm")); // lib path
-
-        callback(null, {
-          extensions: paths,
-          database: database,
-          keepSql: options.keepSql,
-          wipeViews: options.wipeViews,
-          clientOnly: options.clientOnly,
-          databaseOnly: options.databaseOnly,
-          queryDirect: options.queryDirect
-        });
-      };
-
-  credsClone.database = database;
-  dataSource.query(existsSql, credsClone, function (err, res) {
-    if (err) {
-      callback(err);
-      return;
-    }
-    if (res.rowCount === 0) {
-      // xt.ext doesn't exist, because this is probably a brand-new DB.
-      // No problem! Give them empty set.
-      adaptExtensions(null, { rows: [] });
-    } else {
-      dataSource.query(extSql, credsClone, adaptExtensions);
-    }
-  });
-};
-
-var buildDatabase = function () {
-	var databases = [];
-  var cc = getConfigAndCredentials();
-	var config = cc.config;
-	var creds = cc.creds;
+	    // Print usage information
+	  case 'help':
+	    console.log("Help & usage information will go here.");
+	    break;
+	    
+	    // Print the xCore version
+	  case 'version':
+	    // Grab the version number from the package.json file.
+	    var packageJson = fs.readFileSync(path.join(__dirname, "../package.json"));
+	    console.log("Version: " + JSON.parse(packageJson).version);
+	    break;
+	    
+	  // Build the client, database or both.
+	  case 'build':
+	    toBuild = argz[idx+1];
+	    
+	    switch(toBuild) {
+	      case 'all':
+					// buildDatabase();
+					// buildClient();
+	        break;
+	      case 'client':
+	        buildClient();
+	        break;
+	      case 'database':
+					buildDatabase(args);	
+	        break;
+				default:
+					console.log("// TODO: Print build usage");
+					process.exit(0);
+	    }
 	
-	// Configure which databases to build against
-	if (typeof args.database === 'string') {
-		databases.push(args.database);
-	} else {
-		databases = config.datasource.databases;
-	}
-
-  var buildSpecs;
-
-	// Initialize the database.
-	if (typeof args.backup === 'string') {
-		if (typeof args.database !== 'string') {
-			logger.error("You need to specify a database to backup using --database flag");
-			process.exit(1);
-		} else {
-			buildSpecs.database = args.database;
-			buildSpecs.backup = resolvePath(args.backup);
-			buildSpecs.initialize = true;
-			buildSpecs.wipeViews = args.wipeViews;
-			buildSpecs.queryDirect = args.queryDirect;
-
-			databaseBuilder.buildDatabase(buildSpecs, creds, function () {});
-		}
-	}
-
-	// Handle Extensions
-	if (typeof args.extension === 'string') {
-		buildSpecs = _.map(databases, function (database) {
-      var extension = resolvePath(args.extension);
-      return {
-        database: database,
-        keepSql: args.keepSql,
-        wipeViews: args.wipeViews,
-        queryDirect: args.queryDirect,
-        extensions: [extension]
-      };
-    });
-
-    if (args.unregister) {
-      databaseBuilder.unregister(buildSpecs, creds, function () {});
-    } else {
-      // Synchronous build
-      databaseBuilder.buildDatabase(buildSpecs, creds, function () {});
-    }
-
-	} else { // Build all registered extensions for the database.
-		async.map(databases, getRegisteredExtensions, function (err, results) {
-			// Asynchronous...
-			databaseBuilder.buildDatabase(results, creds, function () {});
-		});
-	}
-
-};
-
-var buildAll = function () {
-  buildDatabase();
-  buildClient();
-};
-
-var testExtension = function(name) {
-  var Mocha = require('mocha');
-  var mocha = new Mocha;
-  
-  // use the method "addFile" on the mocha
-  // object for each file.
-  var extensionDir = path.join(__dirname, '../lib/extensions/', name);
-  fs.readdirSync(extensionDir).filter(function(file){
-    // Only keep the .js files
-    return file.substr(-3) === '.js';
-  }).forEach(function(file){
-    // add the file to mocha
-    mocha.addFile(
-      path.join(extensionDir, file)
-    );
-  });
-  
-  // run the tests.
-  mocha.run(function(failures){
-    process.on('exit', function () {
-      process.exit(failures);
-    });
-  });
+	    break;
+	    
+	  case 'test':
+	    toTest = argz[idx+1];
+	    
+	    if (toTest == 'all') {
+	      xTest.testAll();
+	    } else {
+	      xTest.testExtension(toTest);
+	    }    
+			break;
+	  }
+	
+	});
+} else {
+	console.log("Print xcore usage.");
 }
-
-var testAll = function() {
-  var extensionsDir = path.join(__dirname, '../lib/extensions/');
-  var dirs = fs.readdirSync(extensionsDir);
-  _.each(dirs, function (name) {
-    testExtension(name);
-  });  
-}
-
-// Handle the command line arguments.
-_.each(args._, function(arg, idx, argz) {
-  switch(arg) {
-
-    // Print usage information
-  case 'help':
-    console.log("Help & usage information will go here.");
-    process.exit(0);
-    
-    // Print the xCore version
-  case 'version':
-    // Grab the version number from the package.json file.
-    var packageJson = fs.readFileSync(path.join(__dirname, "../package.json"));
-    console.log("Version: " + JSON.parse(packageJson).version);
-    process.exit(0);
-    
-  // Build the client, database or both.
-  case 'build':
-    toBuild = argz[idx+1];
-    
-    switch(toBuild) {
-      case 'all':
-        buildAll();
-        break;
-      case 'client':
-        buildClient();
-        break;
-      case 'database':
-        buildDatabase();
-        break;
-    }
-    
-  case 'test':
-    toTest = argz[idx+1];
-    
-    if (toTest == 'all') {
-      testAll();
-    } else {
-      testExtension(toTest);
-    }    
-  }
-
-});
