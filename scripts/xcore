@@ -11,7 +11,9 @@ var _							= require('underscore'),
 		buildDatabase = require('./lib/xcore/database').buildDatabase,
 		buildClient		= require('./lib/xcore/client').buildClient,
 		xTest					= require('./lib/xcore/test'),
+    extension     = require('./lib/xcore/extension'),
 		logger				= require('./lib/xcore/logger').logger;
+
 
 if (args._.length > 0) {
 	// Handle the command line arguments.
@@ -51,7 +53,7 @@ if (args._.length > 0) {
 	    }
 	
 	    break;
-	    
+    	    
 	  case 'test':
 	    toTest = argz[idx+1];
 	    
@@ -61,7 +63,19 @@ if (args._.length > 0) {
 	      xTest.testExtension(toTest);
 	    }    
 			break;
-	  }
+
+    case 'new':
+      var type = argz[idx + 1],
+          name = argz[idx + 2];
+    
+      switch(type) {
+        case 'extension':
+          extension.generateExtension(name);
+          break;
+      }
+      break;
+    }
+    
 	
 	});
 } else {
