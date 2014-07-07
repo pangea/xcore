@@ -36,8 +36,8 @@ if (args._.length > 0) {
 	    
 	    switch(toBuild) {
 	      case 'all':
-					// buildDatabase();
-					// buildClient();
+					buildDatabase(args);
+					buildClient();
 	        break;
 	      case 'client':
 	        buildClient();
