@@ -15,14 +15,14 @@ logger				= require('./logger').logger;
 	"use strict";
 
 	/**
-	* Queries can be sent via the REST service or psql. They sare the
+	* Queries can be sent via the REST service or psql. They share the
 	* same interface. However I'm not sure how I feel about having
 	* options argument on both just to set "keepsql". Should we
 	* really be passing the whole arguments has in here? We probably
 	* want to find a better way of handling this.
 	*/
 
-	// Send query via REST service.
+	/** Send query via REST service.  */
 	var sendToDatabaseDatasource = function (query, creds, options, callback) {
 		dataSource.query(query, creds, callback);
 	};
@@ -34,7 +34,7 @@ logger				= require('./logger').logger;
 		* deprecate this method for now until we can make a good case to keep
 		* it around.
 	*/
-	// Execute psql command locally.
+  /** Execute psql command locally. */
 	var sendToDatabasePsql = function (query, creds, options, callback) {
 		var filename = path.join(__dirname, "../../sql/temp_query_" + creds.database + ".sql");
 		fs.writeFile(filename, query, function (err) {
@@ -58,7 +58,7 @@ logger				= require('./logger').logger;
 					return;
 				}
 				if (options.keepsql) {
-					// Do not delete the temp query file
+					/** Do not delete the temp query file */
 					logger.info("SQL file kept as ", filename);
 					callback(null, stdout);
 				} else {
@@ -102,12 +102,14 @@ logger				= require('./logger').logger;
 				path.join(__dirname, "../../../node-datasource/config.js")),
 				databases = [];
 
-		// Set Database Credentials
+    /**  Set Database Credentials  */
 		creds = config.databaseServer;
-		creds.host = creds.hostname; // adapt our lingo to node-postgres lingo
-		creds.username = creds.user; // adapt our lingo to orm installer lingo
+    /** adapt our lingo to node-postgres lingo */
+		creds.host = creds.hostname;
+    /** adapt our lingo to orm installer lingo */
+		creds.username = creds.user; 
 
-		// Build all databases in node-datasource/config.js unless the user set.
+		/** Build all databases in node-datasource/config.js unless the user set. */
 		if (opts.database) {
 			databases = [opts.database];
 		} else {
@@ -211,8 +213,10 @@ logger				= require('./logger').logger;
   		  }
 
   		  if (opts.wipeviews || res.rowCount === 0) {
-  		    // xt.orm doesn't exist, because this is probably a brand-new DB.
-  		    // No problem! That just means that there are no pre-existing ORMs.
+          /**
+           *  xt.orm doesn't exist, because this is probably a brand-new DB.
+           *  No problem! That just means that there are no pre-existing ORMs.
+           */
   		    opts.orms = [];
   		  } else {
   		    dataSource.query(ormTestSql, creds, function (err, res) {
@@ -240,7 +244,7 @@ logger				= require('./logger').logger;
 					callback(err);
 				}
 
-				// Get all the extension from lib/extensions
+				/** Get all the extension from lib/extensions */
 				opts.extensions = _.union(opts.extensions, _.map(files, function (f) {
 					return path.join(__dirname, '../../../lib/extensions', f);
 				}));
@@ -258,11 +262,13 @@ logger				= require('./logger').logger;
 	var buildExtensionAndOrmSql = function (opts) {
 		return function (callback) {
 
-			// The function to install all the scripts for an extension
+			/** The function to install all the scripts for an extension */
 			var getExtensionSql = function (extension, extensionCallback) {
 
-				// Step 1:
-				// Deal with directory structure quirks
+				/**
+         * Step 1:
+				 * Deal with directory structure quirks
+         */
 				var isLibOrm = extension.indexOf("lib/orm") >= 0,
 						isExtension = extension.indexOf("extensions") >= 0,
 						dbSourceRoot = isLibOrm ?
@@ -270,8 +276,10 @@ logger				= require('./logger').logger;
 							path.join(extension, "database/source"),
 						manifestFilename = path.join(dbSourceRoot, "manifest.js");
 
-				// Step 2:
-				// Read the manifest files.
+				/** 
+         * Step 2:
+				 * Read the manifest files.
+         */
 				fs.readFile(manifestFilename, "utf8", function (err, manifestString) {
 					if (err) {
 						extensionCallback(err);
@@ -286,7 +294,7 @@ logger				= require('./logger').logger;
 					try {
 						manifest = JSON.parse(manifestString);
 					} catch (error) {
-						// error condition: manifest file is not properly formatted
+						/** error condition: manifest file is not properly formatted */
 						extensionCallback("Manifest is not valid JSON" + manifestFilename);
 					}
 
@@ -297,8 +305,10 @@ logger				= require('./logger').logger;
 						extensionLocation = path.join(__dirname, "lib/extensions");
 					}
 
-					// Step 3:
-					// Concatenate together all the files referenced in the manifest.
+					/**
+           * Step 3:
+					 * Concatenate together all the files referenced in the manifest.
+           */
 					var getScriptSql = function (filename, scriptCallback) {
 						var fullFilename = path.join(dbSourceRoot, filename);
 						fs.readFile(fullFilename, "utf8", function (err, scriptContents) {
@@ -313,10 +323,10 @@ logger				= require('./logger').logger;
 							formattingError,
 							lastChar;
 
-							//
-							// Allow inclusion of js files in manifest. If it is a js file,
-							// use plv8 to execute it.
-							//
+							/**
+							 * Allow inclusion of js files in manifest. If it is a js file,
+							 * use plv8 to execute it.
+							*/
 							//if (fullFilename.substring(fullFilename.length - 2) === 'js') {
 							// this isn't quite working yet
 							// http://adpgtech.blogspot.com/2013/03/loading-useful-modules-in-plv8.html
@@ -324,10 +334,10 @@ logger				= require('./logger').logger;
 							//  scriptContents = "do $$ " + scriptContents + " $$ language plv8;";
 							//}
 
-							//
-							// Incorrectly-ended sql files (i.e. no semicolon) make for unhelpful error messages
-							// when we concatenate 100's of them together. Guard against these.
-							//
+							/**
+							 * Incorrectly-ended sql files (i.e. no semicolon) make for unhelpful error messages
+							 * when we concatenate 100's of them together. Guard against these.
+							 */
 							scriptContents = scriptContents.trim();
 							lastChar = scriptContents.charAt(scriptContents.length - 1);
 							if (lastChar !== ';') {
@@ -367,7 +377,9 @@ logger				= require('./logger').logger;
 						var extensionSql = scriptSql.join('');
 
 						if (!isLibOrm) {
-							// Register extension and dependencies
+							/**
+               * Register extension and dependencies
+               */
 							extensionSql = 'do $$ plv8.elog(NOTICE, "About to register extension ' +
 							extensionName + '"); $$ language plv8;\n' + extensionSql;
 							registerSql = "select xt.register_extension('%@', '%@', '%@', '', %@);\n"
@@ -381,17 +393,19 @@ logger				= require('./logger').logger;
 							});
 							extensionSql = registerSql + extensionSql;
 
-							// Unless it hasn't yet been defined (ie. lib/orm),
-							// running xt.js_init() is probably a good idea.
+							/**
+               * Unless it hasn't yet been defined (ie. lib/orm),
+							 * running xt.js_init() is probably a good idea.
+               */
 							extensionSql = "select xt.js_init();" + extensionSql;
 						}
 
 						extensionCallback(null, extensionSql);
 
 					});
-					//
-					// End script installation code
-					//
+					/**
+					 * End script installation code
+					 */
 				});
 			};
 
@@ -432,7 +446,7 @@ logger				= require('./logger').logger;
 
 	        ormInstaller.run(ormDir, opts, updateSpecs);
 	      } else {
-	        // No ORM dir? No problem! Nothing to install.
+	        /** No ORM dir? No problem! Nothing to install. */
 	        ormCallback(null, "");
 	      }
 			};
@@ -514,8 +528,10 @@ logger				= require('./logger').logger;
 		* done we send it to Postgres to be run.
 	*/
 	exports.buildDatabase = function (opts) {
-		// Opts has all command line arguments. Probably want to remove
-		// opts._ in the caller.
+		/**
+     * Opts has all command line arguments. Probably want to remove
+		 * opts._ in the caller.
+     */
 
 		var configs = readConfig(opts),
 		config = configs.config,
@@ -545,12 +561,12 @@ logger				= require('./logger').logger;
 			**/
 			opts.extensions = [path.join(__dirname, '../../../lib/orm')];
 
-			// Wipe the views from the database if flagged.
+			/** Wipe the views from the database if flagged. */
 			if (opts.wipeviews) {
 				runList.push(wipeViews(opts.allSql, database));
 			}
 
-			// Wipe the database and start from scratch with a ".backup" file
+			/** Wipe the database and start from scratch with a ".backup" file */
 			if (opts.initialize) {
 				runList.push(initDatabase({
 					file: opts.initialize,
@@ -559,7 +575,7 @@ logger				= require('./logger').logger;
 				}));
 			}
 
-			// User wants to only build the DB for this extension.
+			/** User wants to only build the DB for this extension. */
 			if (opts.extension) {
 				if (typeof opts.extension == 'boolean') {
 					logger.error("You have to specify an extension name when using the --extension flag.");
@@ -567,17 +583,18 @@ logger				= require('./logger').logger;
 				}
 
 				opts.extensions.push('../../../lib/extensions/' + opts.extension);
-			} else { // Let's assume they want to build the whole DB.
+			} else { 
+        /** Let's assume they want to build the whole DB. */
 				runList.push(setExtensionsList(opts));
 			}
 
-      // Before database is installed check for existing ORMs.
+      /** Before database is installed check for existing ORMs. */
 			runList.push(getExistingOrms(opts, creds));
 
-			// This is where the heavy lifting is done. Pulls together all the SQL.
+			/** This is where the heavy lifting is done. Pulls together all the SQL */
 			runList.push(buildExtensionAndOrmSql(opts));
 
-			// Process the runList and execute allSql when ready.
+			/** Process the runList and execute allSql when ready. */
 			async.series(runList, function (err, res) {
 				if (err) {
 					logger.error(err);
@@ -600,10 +617,12 @@ logger				= require('./logger').logger;
 			//		}
 			//	);
 
-				// Not sure why datasource runs extension sql and psql does not.
-				// Will have to look into this further. Also don't have a use
-				// case for sending to psql directly. So it may not eveb be
-				// necessary to provide both options.
+				/**
+         * Not sure why datasource runs extension sql and psql does not.
+				 * Will have to look into this further. Also don't have a use
+				 * case for sending to psql directly. So it may not eveb be
+				 * necessary to provide both options.
+         */
 				querySender.send(
 					opts.allSql, creds, opts, function (err, qres) {
 						if (err) {
