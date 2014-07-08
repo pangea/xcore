@@ -184,6 +184,7 @@ logger				= require('./logger').logger;
 						if (err) {
 							logger.warn("Ignoring restore db error", err);
 						}
+            //note
 						//logger.info("Database initialization completed successfully.");
 						callback(null, "Database initialization completed successfully.");
 					});
@@ -327,6 +328,7 @@ logger				= require('./logger').logger;
 							 * Allow inclusion of js files in manifest. If it is a js file,
 							 * use plv8 to execute it.
 							*/
+              //note
 							//if (fullFilename.substring(fullFilename.length - 2) === 'js') {
 							// this isn't quite working yet
 							// http://adpgtech.blogspot.com/2013/03/loading-useful-modules-in-plv8.html
@@ -501,13 +503,14 @@ logger				= require('./logger').logger;
 					* role and then apply.
 					* Also need to add wasInitialized to opts for init func.
 				*/
+        //note
 				// if (spec.wasInitialized) {
 				//   // give the admin user every extension by default
 				//   allSql = allSql + "insert into xt.usrext (usrext_usr_username, usrext_ext_id) " +
 				//     "select '" + creds.username +
 				//     "', ext_id from xt.ext where ext_location = '/core-extensions';";
 				// }
-
+        //note
 				/* Move this out of here */
 				//winston.info("Applying build to database " + spec.database);
 				//credsClone.database = spec.database;
@@ -603,6 +606,7 @@ logger				= require('./logger').logger;
 
 				_.each(res, function(r) { logger.info(r); });
 
+      //note
 			//	sendToDatabaseDatasource(
 			//		opts.allSql, creds, opts, function (err, qres) {
 			//			if (err) {

@@ -33,6 +33,7 @@ var _				= require('underscore'),
 	
 	var copyApplicationCode = function(callback) {
 	  logger.info('Generating tools package.');
+    //note
 	  // TODO: Better way to load tools
 	  var toolsPackage = 'enyo.depends(\n';
 	  toolsPackage += '"' + path.join(__dirname, '../../../node_modules/underscore/underscore-min.js') + '"';
