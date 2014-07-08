@@ -157,7 +157,7 @@ logger				= require('./logger').logger;
 
 			var credsCopy = JSON.parse(JSON.stringify(options.creds));
 
-			// Calls to drop/create database need to be run on the "postgres" database.
+			/** Calls to drop/create database need to be run on the "postgres" database. */
 			credsCopy.database = "postgres";
 			logger.info("Dropping database " + options.database);
 			dataSource.query("drop database if exists " + options.database + ";", credsCopy, function (err, res) {
@@ -200,6 +200,48 @@ logger				= require('./logger').logger;
 		* already exist in the database.
 	*/
 	var getExistingOrms = function(opts, creds) {
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
 		return function (callback) {
 			var existsSql = "select relname from pg_class where relname = 'orm'",
     	    ormTestSql = "select orm_namespace as namespace, " +
@@ -312,7 +354,7 @@ logger				= require('./logger').logger;
 					var getScriptSql = function (filename, scriptCallback) {
 						var fullFilename = path.join(dbSourceRoot, filename);
 						fs.readFile(fullFilename, "utf8", function (err, scriptContents) {
-							// error condition: can't read script
+							/** error condition: can't read script */
 							if (err) {
 								scriptCallback(err);
 								return;
@@ -341,7 +383,7 @@ logger				= require('./logger').logger;
 							scriptContents = scriptContents.trim();
 							lastChar = scriptContents.charAt(scriptContents.length - 1);
 							if (lastChar !== ';') {
-								// error condition: script is improperly formatted
+								/** error condition: script is improperly formatted */
 								formattingError = "Error: " + fullFilename + " contents do not end in a semicolon.";
 								scriptCallback(formattingError);
 							}
