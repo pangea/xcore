@@ -3,81 +3,89 @@
 // Author: Christopher Rankin
 // Copyright: 2014 Pangea Real Estate
 
-var _							= require('underscore'),
-		async					= require('async'),
-		fs						= require('fs'),
-		path					=	require('path'),
-		args					= require('minimist')(process.argv.slice(2)),
-		buildDatabase = require('./lib/xcore/database').buildDatabase,
-		buildClient		= require('./lib/xcore/client').buildClient,
-		xTest					= require('./lib/xcore/test'),
+var _             = require('underscore'),
+    async         = require('async'),
+    fs            = require('fs'),
+    path          = require('path'),
+    args          = require('minimist')(process.argv.slice(2)),
+    buildDatabase = require('./lib/xcore/database').buildDatabase,
+    buildClient   = require('./lib/xcore/client').buildClient,
+    xTest         = require('./lib/xcore/test'),
     extension     = require('./lib/xcore/extension'),
-		logger				= require('./lib/xcore/logger').logger;
+    logger        = require('./lib/xcore/logger').logger,
+    commands      = _.clone(args._),
+    flags         = _.omit(args, '_');
 
-
-if (args._.length > 0) {
-	// Handle the command line arguments.
-	_.each(args._, function(arg, idx, argz) {
-	  switch(arg) {
-	
-	    // Print usage information
-	  case 'help':
-	    console.log("Help & usage information will go here.");
-	    break;
-	    
-	    // Print the xCore version
-	  case 'version':
-	    // Grab the version number from the package.json file.
-	    var packageJson = fs.readFileSync(path.join(__dirname, "../package.json"));
-	    console.log("Version: " + JSON.parse(packageJson).version);
-	    break;
-	    
-	  // Build the client, database or both.
-	  case 'build':
-	    toBuild = argz[idx+1];
-	    
-	    switch(toBuild) {
-	      case 'all':
-					// buildDatabase();
-					// buildClient();
-	        break;
-	      case 'client':
-	        buildClient();
-	        break;
-	      case 'database':
-					buildDatabase(args);	
-	        break;
-				default:
-					console.log("// TODO: Print build usage");
-					process.exit(0);
-	    }
-	
-	    break;
-    	    
-	  case 'test':
-	    toTest = argz[idx+1];
-	    
-	    if (toTest == 'all') {
-	      xTest.testAll();
-	    } else {
-	      xTest.testExtension(toTest);
-	    }    
-			break;
-
-    case 'new':
-      var type = argz[idx + 1],
-          name = argz[idx + 2];
-    
-      switch(type) {
-        case 'extension':
-          extension.generateExtension(name);
-          break;
-      }
+// No commands?  Check for some common flags
+if (commands.length < 1) {
+  switch(true) {
+    case flags.v:
+    case flags.V:
+      commands.push('version');
       break;
-    }
-    
-	
-	});
-} else {
-	console.log("Print xcore usage.");
+    case flags.h:
+    case flags['?']:
+      commands.push('help');
+      break;
+  }
 }
+
+// Handle the command line arguments.
+switch(commands.shift()) {
+  // Print the xCore version
+  case 'version':
+    // Grab the version number from the package.json file.
+    var packageJson = fs.readFileSync(path.join(__dirname, "../package.json"));
+    console.log("Version: " + JSON.parse(packageJson).version);
+    break;
+
+  // Build the client, database or both.
+  case 'build':
+    switch(commands.shift()) {
+      case 'all':
+        buildDatabase(flags);
+        buildClient();
+        break;
+      case 'client':
+        buildClient();
+        break;
+      case 'database':
+        buildDatabase(flags);  
+        break;
+      default:
+        console.log("// TODO: Print build usage");
+    }
+
+    break;
+
+  case 'test':
+    var toTest = commands.shift() || 'all';
+
+    if (toTest == 'all') {
+      xTest.testAll();
+    } else {
+      xTest.testExtension(toTest);
+    }
+    break;
+
+  case 'new':
+		var type = commands.shit(),
+  	    name = commands.shift();
+  	
+  	switch(type) {
+  	  case 'extension':
+  	    extension.generateExtension(name);
+  	    break;
+  	}
+  	break;
+
+  // Print usage information
+  case 'help':
+    console.log("Help & usage information will go here.");
+    break;
+
+  default:
+    if(args._.length) {
+      logger.error('Unknown command "%s"', args._.join(' '));
+    }
+ 

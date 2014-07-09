@@ -128,14 +128,14 @@ app.use(require('less-middleware')(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // DISCOVERY SERVICE
-app.use('/:org/discovery/v1alpha1/apis/v1alpha1/rest', routes.discovery_v1alpha1.getRest);
-app.use('/:org/discovery/v1alpha1/apis/:model/v1alpha1/rest', routes.discovery_v1alpha1.getRest);
-app.use('/:org/discovery/v1alpha1/apis', routes.discovery_v1alpha1.list);
-
-app.post('/:org/api/v1alpha1/services/:service/:id', routes.rest_v1alpha1);
-app.use('/:org/api/v1alpha1/resources/:model/:id', routes.rest_v1alpha1);
-app.use('/:org/api/v1alpha1/resources/:model', routes.rest_v1alpha1);
-app.use('/:org/api/v1alpha1/resources/*', routes.rest_v1alpha1);
+//app.use('/:org/discovery/v1alpha1/apis/v1alpha1/rest', routes.discovery_v1alpha1.getRest);
+//app.use('/:org/discovery/v1alpha1/apis/:model/v1alpha1/rest', routes.discovery_v1alpha1.getRest);
+//app.use('/:org/discovery/v1alpha1/apis', routes.discovery_v1alpha1.list);
+//
+//app.post('/:org/api/v1alpha1/services/:service/:id', routes.rest_v1alpha1);
+//app.use('/:org/api/v1alpha1/resources/:model/:id', routes.rest_v1alpha1);
+//app.use('/:org/api/v1alpha1/resources/:model', routes.rest_v1alpha1);
+//app.use('/:org/api/v1alpha1/resources/*', routes.rest_v1alpha1);
 
 app.use('/', function(req, res) {
   res.render('index', { title: 'xCore' });

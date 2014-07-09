@@ -6,14 +6,14 @@
     kind: 'enyo.Application',
     published: {
       /**
-       * Holds the registered modules organized by name for easier retrieval
+       * Holds the registered extensions organized by name for easier retrieval
        */
-      _registeredModules: {},
+      _registeredExtensions: {},
       /**
-       * Holds fields required for modules to be valid.  By default, we only
+       * Holds fields required for extensions to be valid.  By default, we only
        * require a name, but some GUIs might require more.
        */
-      _requiredModuleFields: [ 'name' ]
+      _requiredExtensionFields: [ 'name' ]
     },
     renderOnStart: false,
     create: function() {
@@ -42,33 +42,33 @@
 
       this.view = gui;
 
-      // Setup registered modules with the GUI
-      _.each(this._registeredModules, function(module) {
-        gui.registerModule(module);
+      // Setup registered extensions with the GUI
+      _.each(this._registeredExtensions, function(extension) {
+        gui.registerExtension(extension);
       });
 
       this.render();
     },
     /**
-     * Adds a field to the required fields for modules.  This triggers an is
-     * valid check on all registered modules and can slow down your app as all
-     * the modules are checked.
-     * Under normal circumstances, your GUI will be loaded before any modules.
+     * Adds a field to the required fields for extensions.  This triggers an is
+     * valid check on all registered extensions and can slow down your app as all
+     * the extensions are checked.
+     * Under normal circumstances, your GUI will be loaded before any extensions.
      * Hence, this check should happen (nearly) instantly.
      *
      * This function can be invoked one of three ways:
-     *  * addRequiredModuleField('fieldname');
-     *  * addRequiredModuleField(['array', 'of', 'fields']);
-     *  * addRequiredModuleField('list', 'of', 'fields');
+     *  * addRequiredExtensionField('fieldname');
+     *  * addRequiredExtensionField(['array', 'of', 'fields']);
+     *  * addRequiredExtensionField('list', 'of', 'fields');
      *
      * **IMPORTANT**: This function should be called in the `create` method of
-     * your GUI.  Otherwise, the app may attempt to register invalid modules
+     * your GUI.  Otherwise, the app may attempt to register invalid extensions
      * with the newly registered GUI.
      *
      * @param {String|Array<String>} field the field or array of fields to add
      *                                     to the list of required fields
      */
-    addRequiredModuleField: function(field) {
+    addRequiredExtensionField: function(field) {
       // Convert multiple argument invocation into array invocation
       if(arguments.length > 1) { field = Array.prototype.slice.call(arguments); }
 
@@ -78,9 +78,9 @@
         // Prevent the recursive calls from triggering multiple reverifications
         this.addingMultipleFields = true;
 
-        _.each(field, this.addRequiredModuleField);
+        _.each(field, this.addRequiredExtensionField);
 
-        this.reverifyModules();
+        this.reverifyExtensions();
 
         // No sense in keeping this field around.
         delete this.addingMultipleFields;
@@ -88,75 +88,75 @@
       }
 
       // Handle single field invocation
-      if(!_.contains(this.requiredModuleFields, field)) {
-        this.requiredModuleFields.push(field);
+      if(!_.contains(this.requiredExtensionFields, field)) {
+        this.requiredExtensionFields.push(field);
 
         if(!this.addingMultipleFields) {
-          this.reverifyModules();
+          this.reverifyExtensions();
         }
       }
     },
     /**
-     * Gets all the currently registered modules.  Modules are stored in an
-     * object under their name.  E.g. `{ 'someModule' : {} }`
+     * Gets all the currently registered extensions.  Extensions are stored in an
+     * object under their name.  E.g. `{ 'someExtension' : {} }`
      *
-     * @return {Object} All the registered modules organized by name
+     * @return {Object} All the registered extensions organized by name
      */
-    getModules: function() {
-      return this._registeredModules;
+    getExtensions: function() {
+      return this._registeredExtensions;
     },
     /**
-     * Gets a specific module by the name it registered with.
+     * Gets a specific extension by the name it registered with.
      *
-     * @param {String} name The name the module registered with
+     * @param {String} name The name the extension registered with
      *
-     * @return {Object|Undefined} The module registered under the given name
+     * @return {Object|Undefined} The extension registered under the given name
      */
-    getModule: function(name) {
-      return this._registeredModules[name];
+    getExtension: function(name) {
+      return this._registeredExtensions[name];
     },
     /**
-     * Registers a new module with the application.
+     * Registers a new extension with the application.
      * The parameters given here are the only ones required by xCore.  Different
      * GUIs may require additional parameters.
      *
-     * @param {Object} module      The module to be registered
-     * @param {String} module.name The name of the module being registered.
-     *                             Used to look up the module
+     * @param {Object} extension      The extension to be registered
+     * @param {String} extension.name The name of the extension being registered.
+     *                             Used to look up the extension
      */
-    registerModule: function(module) {
-      if(this.moduleIsValid(module)) {
-        this._registeredModules[module.name] = module;
+    registerExtension: function(extension) {
+      if(this.extensionIsValid(extension)) {
+        this._registeredExtensions[extension.name] = extension;
         // Has a GUI been registered?
         if(this.$.gui) {
-          this.$.gui.registerModule(module);
+          this.$.gui.registerExtension(extension);
         }
       }
     },
     /**
-     * Runs moduleIsValid for all registered modules.  This method is generally
-     * only called by addRequiredModuleFields to ensure that all loaded modules
+     * Runs extensionIsValid for all registered extensions.  This method is generally
+     * only called by addRequiredExtensionFields to ensure that all loaded extensions
      * are valid for the given GUI.
      */
-    reverifyModules: function() {
-      _.each(this._registeredModules, function(module) {
-        this.moduleIsValid(module);
+    reverifyExtensions: function() {
+      _.each(this._registeredExtensions, function(extension) {
+        this.extensionIsValid(extension);
       }, this);
     },
     /**
-     * Determines if a module has all the fields required by the App.
+     * Determines if a extension has all the fields required by the App.
      * GUIs can add additional required fields.
      *
-     * @param {Object} module the module to validate
+     * @param {Object} extension the extension to validate
      *
-     * @throws Error when the module does not have all the required fields
+     * @throws Error when the extension does not have all the required fields
      *
      * @returns {Boolean} true
      */
-    moduleIsValid: function(module) {
-      _.each(this.requiredModuleFields, function(field) {
-        if(!module[field]) {
-          throw "module " + module.name + " is missing required field " + field;
+    extensionIsValid: function(extension) {
+      _.each(this.requiredExtensionFields, function(field) {
+        if(!extension[field]) {
+          throw "extension " + extension.name + " is missing required field " + field;
         }
       });
 
