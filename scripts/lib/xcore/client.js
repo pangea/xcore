@@ -55,7 +55,7 @@ var _				= require('underscore'),
 	};
 	/** Copies client code from the extensions into lib/client. */
 	var copyExtensionCode = function (callback) {
-	  /** Collect all the extension manifest and and sort by load order. */
+	  /** Collect all the extension manifest and sort by load order. */
 	  logger.info("Copying extensions into client.");
 	  var manifests = getExtensionManifests(),
 	      buildPackageString = function (files) {
