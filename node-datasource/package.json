@@ -13,6 +13,7 @@
     "body-parser": "latest",
     "debug": "latest",
     "ejs": "latest",
-    "less-middleware": "latest"
+    "less-middleware": "latest",
+		"passport": "latest"
   }
 }
