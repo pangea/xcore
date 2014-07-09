@@ -122,17 +122,30 @@ var _				= require('underscore'),
 	    }
 	  });
 	
-	  var extPackage = 'enyo.depends(\n';
-	  _.reduce(manifests, function(pkg, manifest, index) {
-	    pkg += '"' + path.join(__dirname, '../../../lib/extensions', manifest.name, 'client') + '"';
-	    if(index !== manifests.length) {
-	      pkg += ',';
-	    }
-	    return pkg + '\n';
-	  }, extPackage);
-	  extPackage += ');';
-	
-	  fs.writeFile(path.join(__dirname, '../../../lib/client/extensions'), extPackage, callback);
+	  var extPackage = _.reduce(manifests, function(packString, manifest, index) {
+      if(index !== 0) {
+        packString += ',\n';
+      }
+      packString += '"' + path.join(__dirname, '../../../lib/extensions', manifest.name, 'client') + '"';
+      return packString;
+    }, 'enyo.depends(\n');
+    extPackage += '\n);';
+
+    fs.writeFile(
+      path.join(__dirname, '../../../lib/client/source/extensions/package.js'),
+      extPackage,
+      {
+        encoding: 'utf8'
+      },
+      function(err, stdout, stderr) {
+        if(err) {
+          logger.error(err);
+          process.exit(1);
+        }
+
+        callback();
+      }
+    );
 	};
 	
 	/**
