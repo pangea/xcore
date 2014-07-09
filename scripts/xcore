@@ -88,4 +88,4 @@ switch(commands.shift()) {
     if(args._.length) {
       logger.error('Unknown command "%s"', args._.join(' '));
     }
- 
+}
