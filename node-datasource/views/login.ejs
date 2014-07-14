@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title><%= title %> - Business Platform</title>
+    <link rel="shortcut icon" href="images/favicon.ico"/>
+
+    <meta http-equiv="Content-Type" content="text/html; charset=utf8"/>
+    <meta name="apple-mobile-web-app-capable" content="yes"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  </head>
+  <body>
+    <% if(message) { %>
+      <div class='error'><%= message %></div>
+    <% } %>
+    <form action="/login" method="POST">
+      <input name='username' />
+      <input name='password' type='password' />
+      <button type='submit'>Login</button>
+    </form>
+  </body>
+</html>

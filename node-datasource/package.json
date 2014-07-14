@@ -7,6 +7,7 @@
   },
   "dependencies": {
     "express": "latest",
+    "express-session": "latest",
     "serve-favicon": "latest",
     "morgan": "latest",
     "cookie-parser": "latest",

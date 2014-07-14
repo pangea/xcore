@@ -7,8 +7,8 @@ XT = { };
   "use strict";
 
   var options = require("./lib/options"),
-    authorizeNet,
-    sessionOptions = {};
+      authorizeNet,
+      sessionOptions = {};
 
   // Include the X framework.
   require("./lib/xt");
@@ -105,13 +105,15 @@ XT = { };
 
 
 // Configure Express Application
-var express = require('express');
-var path = require('path');
-var favicon = require('serve-favicon');
-var logger = require('morgan');
-var cookieParser = require('cookie-parser');
-var bodyParser = require('body-parser');
-var routes = require('./routes/routes');
+var express = require('express'),
+    session = require('express-session'),
+    passport = require('passport'),
+    path = require('path'),
+    favicon = require('serve-favicon'),
+    logger = require('morgan'),
+    cookieParser = require('cookie-parser'),
+    bodyParser = require('body-parser'),
+    routes = require('./routes/routes');
 
 var app = express();
 
@@ -127,6 +129,19 @@ app.use(cookieParser());
 app.use(require('less-middleware')(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// TODO: This is a first pass and should NOT BE PART OF THE FINAL PRODUCT!!!!!!!
+// Session shit
+app.use(session({
+  secret: 'SUPER SECRET!!!',
+  resave: false,
+  saveUninitialized: false
+}));
+app.use(passport.initialize());
+app.use(passport.session());
+
+// TODO: Document the fuck out of this vvvvvvv
+var authMethod = require('../lib/extensions/authentication').method;
+
 // DISCOVERY SERVICE
 //app.use('/:org/discovery/v1alpha1/apis/v1alpha1/rest', routes.discovery_v1alpha1.getRest);
 //app.use('/:org/discovery/v1alpha1/apis/:model/v1alpha1/rest', routes.discovery_v1alpha1.getRest);
@@ -137,8 +152,32 @@ app.use(express.static(path.join(__dirname, 'public')));
 //app.use('/:org/api/v1alpha1/resources/:model', routes.rest_v1alpha1);
 //app.use('/:org/api/v1alpha1/resources/*', routes.rest_v1alpha1);
 
-app.use('/', function(req, res) {
+app.use('/login', passport.authenticate(authMethod, {
+                    successRedirect: '/app',
+                    failureRedirect: '/?fail'
+                  }));
+
+app.use('/app', function(req, res) {
+  var user = req.user;
+  if(!user || !user.groups) {
+    return res.redirect('/');
+  }
   res.render('index', { title: 'xCore' });
+});
+
+app.use('/', function(req, res) {
+  var message = false,
+      user = req.user;
+
+  if(user && user.groups) {
+    return res.redirect('/app');
+  }
+
+  if(req.query.fail !== undefined) {
+    message = 'Invalid Username or Password';
+  }
+
+  res.render('login', { title: 'xCore login', message: message });
 });
 
 /// catch 404 and forward to error handler
