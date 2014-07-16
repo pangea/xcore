@@ -46,17 +46,20 @@ var _				= require('underscore'),
 	
 	  fs.writeFileSync(path.join(enyoDir, 'source/tools/package.js'), toolsPackage);
 
+    // TODO: This is a fucking awful way of doing this, but it works for now.
+    // NOTE: We can probably change the bootplate to make this less terrible.
+    //       E.G. we can set some kind of obvious, should-be-changed token in
+    //            the package.js file it contains and then write whatever dirs
+    //            we need as a kind of spin up task?
 	  logger.info('Copying application code into client.');
-	  exec('cp ' + path.join(appDir, 'app.js') + ' ' + path.join(enyoDir, 'source'),
-	       function(err, stout, stderr) {
-	         if(err) {
-	           logger.error(err);
-	           logger.error(stderr);
-	           process.exit(1);
-	         }
-	
-	         copyExtensionCode(callback);
-	       });
+    // readFileSync normally returns a Buffer.  We want a String.
+    var appPackage = fs.readFileSync(path.join(enyoDir, 'source/package.js')).toString();
+    // Avoid unnecessary disk IO, if possible
+    if(appPackage.indexOf('app.js') >= 0) {
+      appPackage = appPackage.replace('app.js', appDir);
+      fs.writeFileSync(path.join(enyoDir, 'source/package.js'), appPackage);
+    }
+    copyExtensionCode(callback);
 	};
 
 	/** Copies client code from the extensions into lib/client. */

@@ -15,6 +15,7 @@
     "debug": "latest",
     "ejs": "latest",
     "less-middleware": "latest",
-		"passport": "latest"
+		"passport": "latest",
+    "socket.io": "latest"
   }
 }

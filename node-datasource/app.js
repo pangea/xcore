@@ -1,3 +1,5 @@
+/*jshint node:true */
+/*global require, exports, __dirname, _, jsonpatch, SYS, XT, X*/
 _ = require("underscore");
 jsonpatch = require("json-patch");
 SYS = {};
@@ -116,6 +118,7 @@ var express = require('express'),
     routes = require('./routes/routes');
 
 var app = express();
+X.app = app;  // Never know when this might come in handy
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -211,5 +214,34 @@ app.use(function(err, req, res, next) {
     });
 });
 
+var io = require('socket.io')({ serveClient: true, path: '/clientsock' }),
+    nsp = io.of('/clientsock');
 
-module.exports = app;
+X.sock = io; // keep a copy of io on X so we can use it elsewhere as needed
+
+io.on('connection', function(socket) {
+  console.log('websocket connected', socket.id);
+  // this can probably be used to do session management since it's always called
+});
+
+nsp.on('connection', function(socket) {
+  console.log('websocket connected on clientsock');
+
+  socket.on('testing', function(msg) {
+    console.log('clientsock got:', msg);
+  });
+
+  _.each(['GET', 'POST', 'PATCH', 'DELETE'], function(verb) {
+    socket.on(verb, function(msg) {
+      console.log(verb, msg);
+    });
+  });
+
+  socket.on('datastore', function(msg) {
+    console.log(msg);
+  });
+
+});
+
+exports.router = app;
+exports.socket = io;

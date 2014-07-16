@@ -20,6 +20,7 @@
     create: function() {
       this.inherited(arguments);
       window.xCore = this;
+      this.websocketRequests = new XM.WebsocketRequestCollection();
     },
 
     start: function() {
