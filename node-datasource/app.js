@@ -234,6 +234,9 @@ nsp.on('connection', function(socket) {
   _.each(['GET', 'POST', 'PATCH', 'DELETE'], function(verb) {
     socket.on(verb, function(msg) {
       console.log(verb, msg);
+      setTimeout(function() {
+        socket.emit('xcore message', msg);
+      }, 1000);
     });
   });
 

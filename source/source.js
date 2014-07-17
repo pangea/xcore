@@ -6,7 +6,6 @@
     name: 'XM.WebsocketRequest',
     kind: 'enyo.Model',
     defaults: {
-      socket: null,
       method: 'GET',
       data: null
     },
@@ -14,12 +13,11 @@
       this.inherited(arguments);
 
       var payload = {
-            id: this.euid
+            reqId: this.euid
           },
-          socket = this.get('socket'),
           data = this.get('data');
 
-      if(!socket) {
+      if(!this.socket) {
         throw "WebsocketRequests cannot be created without a websocket (`socket`)";
       }
 
@@ -32,69 +30,66 @@
       }
 
       payload.data = data;
-      socket.emit(this.get('method'), payload);
+      this.socket.emit(this.get('method'), payload);
     },
     success: function() {
       throw "Not implemented.  You must provide a `success` function when creating a WebsocketRequest";
     },
-    error: function() {}
+    fail: function() {}
   });
-
-  enyo.kind({
-    name: 'XM.WebsocketRequestCollection',
-    kind: 'enyo.Collection',
-    model: 'XM.WebsocketRequest'
-  });
-}());
-
-(function() {
-  "use strict";
 
   enyo.kind({
     name: 'XM.WebsocketSource',
     kind: 'enyo.Source',
     socket: io('/clientsock'),
-    create: function() {
+    constructor: function() {
       this.inherited(arguments);
-      this.socket.on('message', function() {
-        console.log(arguments);
+      console.log('setting up socket callbacks');
+      this.socket.on('xcore message', function(msg) {
+        if(msg.reqId) {
+          var req = enyo.store.getRecord(msg.reqId);
+          if(msg.error) {
+            req.fail(msg.error);
+          } else {
+            req.success(msg.data);
+          }
+        } else {
+          // probably a message or some other update.  We'll have to write some
+          // code that figures out what kind of model it is and makes one of it.
+        }
       });
     },
     find: function(record, options) {
-      options.data = 'find';
+      options.from = 'find';
       this.makeRequest(options);
-
-      options.success({});
     },
     fetch: function(record, options) {
       // var fullname = (record instanceof enyo.Collection) ? record.model : record.name,
       //     modelParts = fullname.split('.'),
       //     namespace = (modelParts.length > 1) ? fullname[0] : "SYS",
       //     model = (modelParts.length > 1) ? fullname[1] : fullname[0];
-      options.data = 'fetch';
+      options.from = 'fetch';
       this.makeRequest(options);
-
-      options.success({});
     },
     commit: function(record, options) {
       options.method = 'POST';
-      options.data = 'commit';
+      options.from = 'commit';
       this.makeRequest(options);
-
-      options.success({});
     },
     delete: function(record, options) {
       options.method = 'DELETE';
-      options.data = 'delete';
+      options.from = 'delete';
       this.makeRequest(options);
-
-      options.success({});
     },
     makeRequest: function(options) {
-      options.socket = this.socket;
-      xCore.websocketRequests.add(
-        new XM.WebsocketRequest(options)
-      );
+      var properties = _.pick(options, 'success', 'fail'),
+          attributes = _.pick(options, 'method');
+      properties.socket = this.socket;
+      options = _.omit(options, 'success', 'fail', 'method');
+      attributes.data = options;
+      console.log(attributes, properties);
+
+      new XM.WebsocketRequest(attributes, properties);
     }
   });
 
