@@ -1,0 +1,10 @@
+{
+  "name": "postgres-datasource",
+  "version": "0.0.1",
+  "private": true,
+  "main": "datasource.js",
+  "dependencies": {
+    "knex": "latest",
+    "pg": "latest"
+  }
+}

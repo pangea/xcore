@@ -63,7 +63,7 @@ XT = { };
   X.setup(options);
 
   // load some more required files
-  var datasource = require("./lib/ext/datasource");
+  // var datasource = require("./lib/ext/datasource");
   //require("./lib/ext/models");
   //require("./lib/ext/smtp_transport");
 
@@ -85,6 +85,16 @@ XT = { };
       X.options.encryptionKey = Math.random().toString(36).slice(2);
       X.fs.writeFile(encryptionKeyFilename, X.options.encryptionKey);
     }
+  });
+
+  // TODO: Once we get around to having proper :org handling, we should convert
+  //       this to make one connection for each database.
+  var dbConf = X.options.databaseServer;
+  dbConf.database = 'dev';
+
+  X.DB = require('./lib/datasource')(dbConf);
+  X.DB.select().from('XM.User').then(function() {
+    console.log(arguments);
   });
 
 	/**
