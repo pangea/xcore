@@ -8,6 +8,7 @@ var _             = require('underscore'),
     fs            = require('fs'),
     path          = require('path'),
     args          = require('minimist')(process.argv.slice(2)),
+    server        = require('./lib/xcore/server'),
     buildDatabase = require('./lib/xcore/database').buildDatabase,
     buildClient   = require('./lib/xcore/client').buildClient,
     xTest         = require('./lib/xcore/test'),
@@ -37,6 +38,10 @@ switch(commands.shift()) {
     // Grab the version number from the package.json file.
     var packageJson = fs.readFileSync(path.join(__dirname, "../package.json"));
     console.log("Version: " + JSON.parse(packageJson).version);
+    break;
+
+  case 'server':
+    server.start();
     break;
 
   // Build the client, database or both.
