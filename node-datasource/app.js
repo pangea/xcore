@@ -93,9 +93,7 @@ XT = { };
   dbConf.database = 'dev';
 
   X.DB = require('./lib/datasource')(dbConf);
-  X.DB.select().from('XM.User').then(function() {
-    console.log(arguments);
-  });
+  X.Query = require('./lib/query');
 
 	/**
 		* TODO: Read xtuple/enyo-client/application/lib/backbone-x/source/ext/session.js
@@ -237,23 +235,25 @@ io.on('connection', function(socket) {
 nsp.on('connection', function(socket) {
   console.log('websocket connected on clientsock');
 
-  socket.on('testing', function(msg) {
-    console.log('clientsock got:', msg);
-  });
+  socket.respond = function(response) {
+    this.emit('response', response);
+  };
 
   _.each(['GET', 'POST', 'PATCH', 'DELETE'], function(verb) {
     socket.on(verb, function(msg) {
-      console.log(verb, msg);
-      setTimeout(function() {
-        socket.emit('xcore message', msg);
-      }, 1000);
+      X.DB.Rest(verb, msg.data, 'admin', function(error, rows) {
+        var response = { reqId: msg.reqId };
+
+        if(error) {
+          response.error = error;
+        } else {
+          response.data = rows;
+        }
+
+        socket.respond(response);
+      });
     });
   });
-
-  socket.on('datastore', function(msg) {
-    console.log(msg);
-  });
-
 });
 
 exports.router = app;
