@@ -46,7 +46,7 @@
       }
 
       if(typeof data === 'function') {
-        data = data();
+        data = data.call(this);
       }
 
       payload.data = data;
@@ -59,7 +59,54 @@
   });
 
 
+  enyo.kind({ /** @lends XM.Dispatch */
+    name: 'XM.Dispatch',
+    kind: 'XM.WebsocketRequest',
+    defaults: {
+      method: 'POST',
+      data: function() {
+        return {
+          nameSpace: this.get('nameSpace'),
+          type: this.get('type'),
+          dispatch: {
+            functionName: this.get('functionName'),
+            parameters: this.get('parameters')
+          }
+        };
+      }
+    },
+    /**
+     * @constructor
+     *
+     * @param {Object} attributes     an object containing key:value pairs that
+     *                                will be set as the model's attributes
+     * @param {String} attributes.nameSpace e.g. XM
+     * @param {String} attributes.type      name of the object to operate on
+     *                                      e.g. Account
+     * @param {String} attributes.functionName name of the dispatched function
+     *                                         to call
+     * @param {Object} opts           an object that will be mixed into the
+     *                                resulting model
+     * @param {Function} opts.success will be called when the request finishes
+     *                                successfully
+     * @param {Function} [opts.fail]  will be called if the request fails
+     */
+    constructor: function(attributes, opts) {
+      // Ensure we have everything we need
+      _.each(['nameSpace', 'type', 'functionName'], function(attribute) {
+        if(!attributes[attribute]) {
+          throw new Error('Malformed dispatch request.  No `' + attribute + '` given.');
+        }
+      });
 
+      // Defend against common mistakes
+      if(attributes.success || attributes.fail) {
+        throw new Error('`success` and `fail` functions cannot be given as attributes.');
+      }
+
+      this.inherited(arguments);
+    }
+  });
 
 }());
 
