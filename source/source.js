@@ -1,5 +1,25 @@
 /*jshint*/
 /*global io, enyo*/
+(function() {
+  "use strict";
+
+  xCore.socket = io('/clientsock');
+  xCore.socket.on('response', function(msg) {
+    var req = enyo.store.getRecord(msg.reqId);
+    if(msg.error) {
+      console.error(msg.error);
+      req.fail(msg.error);
+    } else {
+      console.log(msg.data);
+      req.success(msg.data);
+    }
+  });
+
+  xCore.socket.on('update', function() {
+    // not used right now.  Will be used for unsolicited model updates from
+    // the server
+  });
+}());
 
 (function() {
   enyo.kind({
@@ -17,8 +37,8 @@
           },
           data = this.get('data');
 
-      if(!this.socket) {
-        throw "WebsocketRequests cannot be created without a websocket (`socket`)";
+      if(!xCore.socket) {
+        throw "No websocket connection exists in xCore.socket.  Did you destroy it?";
       }
 
       if(!data) {
@@ -30,7 +50,7 @@
       }
 
       payload.data = data;
-      this.socket.emit(this.get('method'), payload);
+      xCore.socket.emit(this.get('method'), payload);
     },
     success: function() {
       throw "Not implemented.  You must provide a `success` function when creating a WebsocketRequest";
@@ -38,29 +58,17 @@
     fail: function() {}
   });
 
+
+
+
+}());
+
+(function() {
+  "use strict";
+
   enyo.kind({
     name: 'XM.WebsocketSource',
     kind: 'enyo.Source',
-    socket: io('/clientsock'),
-    constructor: function() {
-      this.inherited(arguments);
-
-      this.socket.on('response', function(msg) {
-        var req = enyo.store.getRecord(msg.reqId);
-        if(msg.error) {
-          console.error(msg.error);
-          req.fail(msg.error);
-        } else {
-          console.log(msg.data);
-          req.success(msg.data);
-        }
-      });
-
-      this.socket.on('update', function() {
-        // not used right now.  Will be used for unsolicited model updates from
-        // the server
-      });
-    },
     find: function(constructor, options) {
       // Might be a collection or a model or the name of the kind
       var model = constructor.model || constructor.name || constructor,
@@ -154,7 +162,6 @@
     makeRequest: function(options) {
       var properties = _.pick(options, 'success', 'fail'),
           attributes = _.pick(options, 'method');
-      properties.socket = this.socket;
       options = _.omit(options, 'success', 'fail', 'method');
       attributes.data = options;
       console.log(attributes, properties);
