@@ -53,7 +53,7 @@
       xCore.socket.emit(this.get('method'), payload);
     },
     success: function() {
-      throw "Not implemented.  You must provide a `success` function when creating a WebsocketRequest";
+      throw new Error("Not implemented.  You must provide a `success` function when creating a WebsocketRequest");
     },
     fail: function() {}
   });
