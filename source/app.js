@@ -17,11 +17,6 @@
       _currentUser: { uid: 'chall' }
     },
     renderOnStart: false,
-    create: function() {
-      this.inherited(arguments);
-      window.xCore = this;
-    },
-
     start: function() {
       this.inherited(arguments);
     },
@@ -173,6 +168,7 @@
   });
 
   enyo.ready(function() {
-    new XV.Application({name: 'xCore'});
+    xCore.name = 'xCore';
+    new XV.Application(xCore);
   });
 }());
