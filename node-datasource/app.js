@@ -235,10 +235,6 @@ io.on('connection', function(socket) {
 nsp.on('connection', function(socket) {
   console.log('websocket connected on clientsock');
 
-  socket.respond = function(response) {
-    this.emit('response', response);
-  };
-
   _.each(['GET', 'POST', 'PATCH', 'DELETE'], function(verb) {
     socket.on(verb, function(msg) {
       X.DB.Rest(verb, msg.data, 'admin', function(error, rows) {
@@ -250,7 +246,7 @@ nsp.on('connection', function(socket) {
           response.data = rows;
         }
 
-        socket.respond(response);
+        socket.emit('response', response);
       });
     });
   });
