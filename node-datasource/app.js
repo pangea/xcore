@@ -140,7 +140,7 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // TODO: Document the fuck out of this vvvvvvv
-var authMethod = require('../lib/extensions/authentication').method;
+var auth = require('../lib/extensions/authentication');
 
 // DISCOVERY SERVICE
 //app.use('/:org/discovery/v1alpha1/apis/v1alpha1/rest', routes.discovery_v1alpha1.getRest);
@@ -152,7 +152,7 @@ var authMethod = require('../lib/extensions/authentication').method;
 //app.use('/:org/api/v1alpha1/resources/:model', routes.rest_v1alpha1);
 //app.use('/:org/api/v1alpha1/resources/*', routes.rest_v1alpha1);
 
-app.use('/login', passport.authenticate(authMethod, {
+app.use('/login', auth({
                     successRedirect: '/app',
                     failureRedirect: '/?fail'
                   }));
