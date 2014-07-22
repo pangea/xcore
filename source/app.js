@@ -13,7 +13,8 @@
        * Holds fields required for extensions to be valid.  By default, we only
        * require a name, but some GUIs might require more.
        */
-      _requiredExtensionFields: [ 'name' ]
+      _requiredExtensionFields: [ 'name' ],
+      _currentUser: { uid: 'chall' }
     },
     renderOnStart: false,
     create: function() {
@@ -161,6 +162,13 @@
       });
 
       return true;
+    },
+    currentUser: function(user) {
+      if(user) {
+        this._currentUser = user;
+      }
+
+      return this._currentUser;
     }
   });
 
