@@ -4,8 +4,8 @@ var app   = require('../app');
 var https = require('https');
 var fs    = require('fs');
 var server = https.createServer({
-      key: fs.readFileSync('./lib/private/key.pem'),
-      cert: fs.readFileSync('./lib/private/server.crt')
+      key: fs.readFileSync(X.options.datasource.keyFile),
+      cert: fs.readFileSync(X.options.datasource.certFile)
     }, app.router);
 
 app.socket.attach(server);
