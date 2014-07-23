@@ -14,12 +14,9 @@
        * require a name, but some GUIs might require more.
        */
       _requiredExtensionFields: [ 'name' ],
-      _currentUser: { uid: 'chall' }
+      _currentUser: currentUser
     },
     renderOnStart: false,
-    start: function() {
-      this.inherited(arguments);
-    },
     /**
      * Registers the GUI to be used by the application
      *
@@ -167,8 +164,6 @@
     }
   });
 
-  enyo.ready(function() {
-    xCore.name = 'xCore';
-    new XV.Application(xCore);
-  });
+  xCore.name = 'xCore';
+  new XV.Application(xCore);
 }());

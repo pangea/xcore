@@ -9,20 +9,15 @@
     <meta name="apple-mobile-web-app-capable" content="yes"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
     <!-- css -->
-    <!--
-    <link href="build/enyo.css" rel="stylesheet"/>
-    <link href="build/app.css" rel="stylesheet"/>
-    -->
     <link rel='stylesheet' href='/stylesheets/core.css' />
-
-    <!-- js -->
-    <!--
-    <script src="build/enyo.js" charset="utf-8"></script>
-    <script src="build/app.js" charset="utf-8"></script>
-    -->
-    <script src="/clientsock/socket.io.js"></script>
-    <script src="/javascripts/core.js"></script>
   </head>
   <body class="enyo-unselectable">
+    <h2>Loading</h2>
+    <p>We should probably make a nice loading mask or something...</p>
+
+    <!-- js -->
+    <script src="/clientsock/socket.io.js"></script>
+    <script>var currentUser = <%- JSON.stringify(user) %>;</script>
+    <script src="/javascripts/core.js" async='async'></script>
   </body>
 </html>

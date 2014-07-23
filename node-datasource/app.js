@@ -77,15 +77,13 @@ XT = { };
 
   // load the encryption key, or create it if it doesn't exist
   // it should created just once, the very first time the datasource starts
-  var encryptionKeyFilename = './lib/private/encryption_key.txt';
-  X.fs.exists(encryptionKeyFilename, function (exists) {
-    if (exists) {
-      X.options.encryptionKey = X.fs.readFileSync(encryptionKeyFilename, "utf8");
-    } else {
-      X.options.encryptionKey = Math.random().toString(36).slice(2);
-      X.fs.writeFile(encryptionKeyFilename, X.options.encryptionKey);
-    }
-  });
+  var encryptionKeyFilename = X.options.datasource.saltFile;
+  if(X.fs.existsSync(encryptionKeyFilename)) {
+    X.options.encryptionKey = X.fs.readFileSync(encryptionKeyFilename, "utf8");
+  } else {
+    X.options.encryptionKey = Math.random().toString(36).slice(2);
+    X.fs.writeFile(encryptionKeyFilename, X.options.encryptionKey);
+  }
 
   // TODO: Once we get around to having proper :org handling, we should convert
   //       this to make one connection for each database.
@@ -121,9 +119,11 @@ var express = require('express'),
     path = require('path'),
     favicon = require('serve-favicon'),
     logger = require('morgan'),
-    cookieParser = require('cookie-parser'),
+    CookieParser = require('cookie-parser'),
     bodyParser = require('body-parser'),
-    routes = require('./routes/routes');
+    routes = require('./routes/routes'),
+    cookieParser = CookieParser(X.options.encryptionKey),
+    sessionStore = new session.MemoryStore();
 
 var app = express();
 X.app = app;  // Never know when this might come in handy
@@ -136,14 +136,15 @@ app.use(favicon(path.join(__dirname, 'public/images/icon.png')));
 app.use(logger('dev'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded());
-app.use(cookieParser());
+app.use(cookieParser);
 app.use(require('less-middleware')(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // TODO: This is a first pass and should NOT BE PART OF THE FINAL PRODUCT!!!!!!!
 // Session shit
 app.use(session({
-  secret: 'SUPER SECRET!!!',
+  secret: X.options.encryptionKey,
+  store: sessionStore,
   resave: false,
   saveUninitialized: false
 }));
@@ -173,7 +174,7 @@ app.use('/app', function(req, res) {
   if(!user || !user.groups) {
     return res.redirect('/');
   }
-  res.render('index', { title: 'xCore' });
+  res.render('index', { title: 'xCore', user: user });
 });
 
 app.use('/', function(req, res) {
@@ -222,18 +223,26 @@ app.use(function(err, req, res, next) {
     });
 });
 
-var io = require('socket.io')({ serveClient: true, path: '/clientsock' }),
+var SockSession = require('session.socket.io'),
+    sock = require('socket.io')({ serveClient: true, path: '/clientsock' }),
+    io = new SockSession(sock, sessionStore, cookieParser),
     nsp = io.of('/clientsock');
 
-X.sock = io; // keep a copy of io on X so we can use it elsewhere as needed
+// keep a copy of io on X so we can use it elsewhere as needed
+X.sock = io;
+// keep a reference to the original server so we can work with it
+X.sock.server = sock;
 
-io.on('connection', function(socket) {
-  console.log('websocket connected', socket.id);
-  // this can probably be used to do session management since it's always called
-});
+nsp.on('connection', function(err, socket, session) {
+  socket.emit('server ready', { status: 'connected' });
+  if(err) {
+    console.log(err);
+    socket.emit('logout', 'forbidden');
+    // socket.disconnect('unathorized');
+    return;
+  }
 
-nsp.on('connection', function(socket) {
-  console.log('websocket connected on clientsock');
+  console.log(session.passport.user);
 
   _.each(['GET', 'POST', 'PATCH', 'DELETE'], function(verb) {
     socket.on(verb, function(msg) {

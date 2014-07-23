@@ -8,6 +8,6 @@ var server = https.createServer({
       cert: fs.readFileSync(X.options.datasource.certFile)
     }, app.router);
 
-app.socket.attach(server);
+app.socket.server.attach(server);
 
 server.listen(8443);

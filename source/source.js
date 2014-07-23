@@ -2,9 +2,18 @@
 /*global io, enyo*/
 (function() {
   "use strict";
+  var socket = xCore.socket = io('/clientsock');
 
-  xCore.socket = io('/clientsock');
-  xCore.socket.on('response', function(msg) {
+  socket.on('session expired', function(err) {
+    alert('You session has expired.  Please log in again.');
+    location.replace('/');
+  });
+
+  socket.on('server ready', function(msg) {
+    console.log(msg);
+  });
+
+  socket.on('response', function(msg) {
     var req = enyo.store.getRecord(msg.reqId);
     if(msg.error) {
       console.error(msg.error);
@@ -15,9 +24,10 @@
     }
   });
 
-  xCore.socket.on('update', function() {
+  socket.on('update', function(msg) {
     // not used right now.  Will be used for unsolicited model updates from
     // the server
+    console.log(msg);
   });
 }());
 

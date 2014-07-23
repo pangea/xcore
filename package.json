@@ -8,8 +8,8 @@
     "url": "https://github.com/pangea/xcore.git"
   },
   "bugs": {
-    "url" : "http://github.com/pangea/xcore/issues",
-    "email" : "dev@pangeare.com"
+    "url": "http://github.com/pangea/xcore/issues",
+    "email": "dev@pangeare.com"
   },
   "people fields": {
     "author": "Christopher Rankin <crankin@pangeare.com> (http://pangeare.com/)",
@@ -33,7 +33,6 @@
     "pg": "latest",
     "rimraf": "latest",
     "rjson": "latest",
-    "socket.io": "latest",
     "static-favicon": "latest",
     "underscore": "latest",
     "underscore-contrib": "latest",
@@ -49,8 +48,7 @@
     "contextify": "latest",
     "zombie": "latest"
   },
-  "optionalDependencies": {
-  },
+  "optionalDependencies": {},
   "engines": {
     "node": "0.10.x"
   },
