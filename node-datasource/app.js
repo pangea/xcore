@@ -228,10 +228,10 @@ var SockSession = require('session.socket.io'),
     io = new SockSession(sock, sessionStore, cookieParser),
     nsp = io.of('/clientsock');
 
+// keep a reference to the original server so we can work with it
+io.server = sock;
 // keep a copy of io on X so we can use it elsewhere as needed
 X.sock = io;
-// keep a reference to the original server so we can work with it
-X.sock.server = sock;
 
 nsp.on('connection', function(err, socket, session) {
   socket.emit('server ready', { status: 'connected' });
