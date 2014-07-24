@@ -1,6 +1,6 @@
 enyo.depends(
   'globals.js',
-  'source.js',
-  'model.js',
+  'models',
+  'views',
   'app.js'
 );
