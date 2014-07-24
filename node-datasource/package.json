@@ -18,7 +18,6 @@
     "passport": "latest",
     "session.socket.io": "^0.1.6",
     "socket.io": "latest",
-    "knex": "latest",
-    "ldapjs": "latest"
+    "knex": "latest"
   }
 }
