@@ -15,8 +15,10 @@
     "debug": "latest",
     "ejs": "latest",
     "less-middleware": "latest",
-		"passport": "latest",
+    "passport": "latest",
     "session.socket.io": "^0.1.6",
-    "socket.io": "latest"
+    "socket.io": "latest",
+    "knex": "latest",
+    "ldapjs": "latest"
   }
 }
