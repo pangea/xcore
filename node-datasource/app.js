@@ -234,25 +234,30 @@ io.server = sock;
 X.sock = io;
 
 nsp.on('connection', function(err, socket, session) {
-  socket.emit('server ready', { status: 'connected' });
   if(err) {
-    console.log(err);
     socket.emit('logout', 'forbidden');
     // socket.disconnect('unathorized');
     return;
   }
 
-  console.log(session.passport.user);
-
   _.each(['GET', 'POST', 'PATCH', 'DELETE'], function(verb) {
     socket.on(verb, function(msg) {
-      X.DB.Rest(verb, msg.data, 'admin', function(error, rows) {
+      console.log(verb, 'request', msg);
+      X.DB.Rest(verb, msg.data, 'admin', function(error, resp) {
         var response = { reqId: msg.reqId };
 
         if(error) {
           response.error = error;
         } else {
-          response.data = rows;
+          console.log(resp);
+          try {
+            var get = resp.rows[0][verb.toLowerCase()],
+                parsed = JSON.parse(get);
+            response.data = parsed.data;
+            console.log('response', response);
+          } catch(e) {
+            response.error = e;
+          }
         }
 
         socket.emit('response', response);

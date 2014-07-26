@@ -17,6 +17,7 @@
   enyo.kind({
     name: 'XM.Collection',
     kind: 'enyo.Collection',
+    defaultSource: 'websocket',
     /**
      * Overloads enyo's default fetch to allow for multiple collections to exist
      * simultaneously.  It does this by bypassing the usual fetch mechanics and

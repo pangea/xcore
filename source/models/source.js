@@ -9,10 +9,6 @@
     location.replace('/');
   });
 
-  socket.on('server ready', function(msg) {
-    console.log(msg);
-  });
-
   socket.on('response', function(msg) {
     var req = enyo.store.getRecord(msg.reqId);
     if(msg.error) {
@@ -202,16 +198,21 @@
       return query;
     },
     setupRequest: function(record, options) {
-      var model = (record instanceof enyo.Collection) ? record.model : record.kindName,
-          parts = model.split('.');
+      var isCollection = record instanceof enyo.Collection,
+          model = (isCollection) ? record.model.prototype : record,
+          parts = model.kindName.split('.');
 
       _.extend(options, {
         nameSpace: parts[0],
         type: parts[1]
       });
 
-      if(record.get('id')) {
+      if(!isCollection && record.get('id')) {
         options.id = record.get('id');
+      }
+
+      if(options.method == 'POST') {
+        options.data = _.omit(record.attributes, 'id');
       }
 
       // options.query = this.generateQuery(record);
@@ -221,7 +222,6 @@
           attributes = _.pick(options, 'method');
       options = _.omit(options, 'success', 'fail', 'method');
       attributes.data = options;
-      console.log(attributes, properties);
 
       new XM.WebsocketRequest(attributes, properties);
     }
