@@ -338,7 +338,7 @@ return (function () {
       /* Do a hard trim to 900 so something prints. */
       XT.message(500, "Internal Server Error");
       plv8.elog(WARNING, message.substring(0, 900));
-      throw "unhandledError";
+      throw error;
     }
   }
 
