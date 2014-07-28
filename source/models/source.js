@@ -11,11 +11,10 @@
 
   socket.on('response', function(msg) {
     var req = enyo.store.getRecord(msg.reqId);
+    console.log(msg);
     if(msg.error) {
-      console.error(msg.error);
       req.fail(msg.error);
     } else {
-      console.log(msg.data);
       req.success(msg.data);
     }
   });
@@ -145,7 +144,8 @@
       this.makeRequest(options);
     },
     commit: function(record, options) {
-      options.method = 'POST';
+      console.log(arguments);
+      options.method = (record.isNew ? 'POST' : 'PATCH');
       this.setupRequest(record, options);
       this.makeRequest(options);
     },
@@ -213,6 +213,10 @@
 
       if(options.method == 'POST') {
         options.data = _.omit(record.attributes, 'id');
+      }
+
+      if(options.method == 'PATCH') {
+        options.data = jiff.diff(record.previous, record.attributes);
       }
 
       // options.query = this.generateQuery(record);

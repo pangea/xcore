@@ -29,6 +29,11 @@
         return callback(query.getErrors());
       }
 
+      if(method == 'PATCH') {
+        payload.patches = payload.data;
+        delete payload.data;
+      }
+
       DB.transaction(function(trans) {
         return trans.raw("SELECT xt.js_init(%@);".f(debugMode ? "true" : ""))
           .then(

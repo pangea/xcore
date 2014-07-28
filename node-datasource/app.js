@@ -233,6 +233,26 @@ io.server = sock;
 // keep a copy of io on X so we can use it elsewhere as needed
 X.sock = io;
 
+var responseHandlers = {
+      'GET' : function(resp) {
+        return JSON.parse(resp.rows[0].get);
+      },
+      'POST' : function(resp) {
+        console.log(resp);
+        return JSON.parse(resp.rows[0].post);
+      },
+      'PATCH' : function(resp) {
+        var patch = JSON.parse(resp.rows[0].patch);
+        patch.data = { patches: patch.patches };
+        delete patch.patches;
+        return patch;
+      },
+      'DELETE' : function(resp) {
+        console.log(resp);
+        return JSON.parse(resp.rows[0].delete);
+      }
+    };
+
 nsp.on('connection', function(err, socket, session) {
   if(err) {
     socket.emit('logout', 'forbidden');
@@ -249,11 +269,9 @@ nsp.on('connection', function(err, socket, session) {
         if(error) {
           response.error = error;
         } else {
-          console.log(resp);
           try {
-            var get = resp.rows[0][verb.toLowerCase()],
-                parsed = JSON.parse(get);
-            response.data = parsed.data;
+            var parsed = responseHandlers[verb].call(null, resp);
+            _.extend(response, parsed);
             console.log('response', response);
           } catch(e) {
             response.error = e;

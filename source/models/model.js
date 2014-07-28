@@ -3,11 +3,21 @@
 	  name: 'XM.Model',
 	  kind: 'enyo.Model',
     defaultSource: 'websocket',
+    parse: function(data) {
+      // This means our data is actually an update to the model.  These come down
+      // as JSON Patches.  So, we apply the patch return that insead
+      // NOTE: This operation does not change any values in the attributes hash!
+      if(data.patches) {
+        return jiff.patch(data.patches, this.attributes);
+      }
+
+      return data;
+    },
 	  hasCreator: function() {
 		  var creator = this.get('created_by');
 
 		  if ((typeof creator !== 'undefined') && (creator !== '')) {
-			  return true;		
+			  return true;
 		  }
 
 		  return false;
