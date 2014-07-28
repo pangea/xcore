@@ -142,6 +142,7 @@ install_packages() {
   echo "Installing Postgres ..."
   sudo apt-get -q -y install $PG_VERSION
   sudo apt-get -q -y install postgresql-${PG_VERSION_NUM[1]}-plv8
+  sudo apt-get -q -y install libpq-dev
 
   install_npm
 }

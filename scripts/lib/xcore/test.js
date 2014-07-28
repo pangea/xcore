@@ -11,11 +11,13 @@ var _ = require('underscore'),
 	  var Mocha = require('mocha');
 	  var mocha = new Mocha;
 	  
-	  // use the method "addFile" on the mocha
-	  // object for each file.
+	  /**
+     * use the method "addFile" on the mocha
+	   * object for each file.
+     */
 	  var extensionDir = path.join(__dirname, '../../../lib/extensions/', name);
 	  fs.readdirSync(extensionDir).filter(function(file){
-	    // Only keep the .js files
+	    /** Only keep the .js files */
 	    return file.substr(-3) === '.js';
 	  }).forEach(function(file){
 	    // add the file to mocha
@@ -24,7 +26,7 @@ var _ = require('underscore'),
 	    );
 	  });
 	  
-	  // run the tests.
+	  /** run the tests. */
 	  mocha.run(function(failures){
 	    process.on('exit', function () {
 	      process.exit(failures);

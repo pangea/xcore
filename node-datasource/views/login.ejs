@@ -4,20 +4,19 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     <title><%= title %> - Business Platform</title>
     <link rel="shortcut icon" href="images/favicon.ico"/>
-    <!-- -->
+
     <meta http-equiv="Content-Type" content="text/html; charset=utf8"/>
     <meta name="apple-mobile-web-app-capable" content="yes"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-    <!-- css -->
-    <link rel='stylesheet' href='/stylesheets/core.css' />
   </head>
-  <body class="enyo-unselectable">
-    <h2>Loading</h2>
-    <p>We should probably make a nice loading mask or something...</p>
-
-    <!-- js -->
-    <script src="/clientsock/socket.io.js"></script>
-    <script>var currentUser = <%- JSON.stringify(user) %>;</script>
-    <script src="/javascripts/core.js" async='async'></script>
+  <body>
+    <% if(message) { %>
+      <div class='error'><%= message %></div>
+    <% } %>
+    <form action="/login" method="POST">
+      <input name='username' autofocus='autofocus' />
+      <input name='password' type='password' />
+      <button type='submit'>Login</button>
+    </form>
   </body>
 </html>

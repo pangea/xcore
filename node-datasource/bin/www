@@ -3,8 +3,11 @@ var debug = require('debug')('node-datasource');
 var app   = require('../app');
 var https = require('https');
 var fs    = require('fs');
+var server = https.createServer({
+      key: fs.readFileSync(X.options.datasource.keyFile),
+      cert: fs.readFileSync(X.options.datasource.certFile)
+    }, app.router);
 
-https.createServer({
-  key: fs.readFileSync('./lib/private/key.pem'),
-  cert: fs.readFileSync('./lib/private/server.crt')
-}, app).listen(8443);
+app.socket.server.attach(server);
+
+server.listen(8443);

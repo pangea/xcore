@@ -7,15 +7,21 @@ var _				= require('underscore'),
 (function () {
 	"use strict";
 
-	var getExtensionManifests = function() {
-	  var extensionDirs = fs.readdirSync(path.join(__dirname, '../../../lib/extensions')),
+  // Setup file paths
+  var enyoDir = path.join(__dirname, '../../../lib/client'),
+      appDir = path.join(__dirname, '../../../source'),
+      extensionDir = path.join(__dirname, '../../../lib/extensions'),
+      datasourceDir = path.join(__dirname, '../../../node-datasource');
+
+  var getExtensionManifests = function() {
+	  var extensionDirs = fs.readdirSync(extensionDir),
 	      manifests = {};
 	
 	  _.each(extensionDirs, function(dir, idx, dirs) {
 	    if (dir == '.git') { return true; }
 	    try {
 	    var contents = fs.readFileSync(path.join(
-	      __dirname,'../../../lib/extensions', dir, '/database/source/manifest.js'), 'utf8'),
+	      extensionDir, dir, '/database/source/manifest.js'), 'utf8'),
 	      manifest = JSON.parse(contents);
 	
 	      manifests[manifest.name] = manifest;
@@ -38,24 +44,27 @@ var _				= require('underscore'),
 	  toolsPackage += '"' + path.join(__dirname, '../../../node_modules/underscore/underscore-min.js') + '"';
 	  toolsPackage += '\n);';
 	
-	  fs.writeFileSync(path.join(__dirname, '../../../lib/client/source/tools/package.js'), toolsPackage);
-	
+	  fs.writeFileSync(path.join(enyoDir, 'source/tools/package.js'), toolsPackage);
+
+    // TODO: This is a fucking awful way of doing this, but it works for now.
+    // NOTE: We can probably change the bootplate to make this less terrible.
+    //       E.G. we can set some kind of obvious, should-be-changed token in
+    //            the package.js file it contains and then write whatever dirs
+    //            we need as a kind of spin up task?
 	  logger.info('Copying application code into client.');
-	  exec('cp ' + path.join(__dirname, '../../../source/app.js') + ' ' + path.join(__dirname, '../../../lib/client/source'),
-	       function(err, stout, stderr) {
-	         if(err) {
-	           logger.error(err);
-	           logger.error(stderr);
-	           process.exit(1);
-	         }
-	
-	         copyExtensionCode(callback);
-	       });
+    // readFileSync normally returns a Buffer.  We want a String.
+    var appPackage = fs.readFileSync(path.join(enyoDir, 'source/package.js')).toString();
+    // Avoid unnecessary disk IO, if possible
+    if(appPackage.indexOf('app.js') >= 0) {
+      appPackage = appPackage.replace('app.js', appDir);
+      fs.writeFileSync(path.join(enyoDir, 'source/package.js'), appPackage);
+    }
+    copyExtensionCode(callback);
 	};
-	
-	// Copies client code from the extensions into lib/client.
+
+	/** Copies client code from the extensions into lib/client. */
 	var copyExtensionCode = function (callback) {
-	  // Collect all the extension manifest and and sort by load order.
+	  /** Collect all the extension manifest and sort by load order. */
 	  logger.info("Copying extensions into client.");
 	  var manifests = getExtensionManifests(),
 	      buildPackageString = function (files) {
@@ -92,17 +101,17 @@ var _				= require('underscore'),
 	
 	  manifests = _.sortBy(manifests, 'loadOrder');
 	
-	  // Copy assets to the appropriate places
+	  /** Copy assets to the appropriate places */
 	  _.each(manifests, function(manifest) {
-	    var clientCodeDir = path.join(__dirname, '../../../lib/extensions', manifest.name, 'client');
+	    var clientCodeDir = path.join(extensionDir, manifest.name, 'client');
 	    var dirs = fs.readdirSync(clientCodeDir);
 	
 	    if (_.contains(dirs, 'assets')) {
 	      var idx = _.indexOf(dirs, 'assets');
 	      dirs.splice(idx, 1);
 	
-	      exec('cp -R ' + path.join(__dirname, '../../../lib/extensions', manifest.name ,'client/assets/*') +
-	           ' ' + path.join(__dirname, '../../../lib/client/assets/'),
+	      exec('cp -R ' + path.join(extensionDir, manifest.name ,'client/assets/*') +
+	           ' ' + path.join(enyoDir, 'assets/'),
 	           function (err, stdout, stderr) {
 	             if (err !== null) {
 	               logger.error(err);
@@ -110,8 +119,8 @@ var _				= require('underscore'),
 	             }
 	           });
 	
-	      exec('cp -R ' + path.join(__dirname, '../../../lib/extensions', manifest.name ,'client/assets') +
-	           ' ' + path.join(__dirname, '../../../node-datasource/public/images', manifest.name),
+	      exec('cp -R ' + path.join(extensionDir, manifest.name ,'client/assets') +
+	           ' ' + path.join(datasourceDir, 'public/images', manifest.name),
 	           function (err, stdout, stderr) {
 	             if (err !== null) {
 	               logger.error(err);
@@ -122,17 +131,30 @@ var _				= require('underscore'),
 	    }
 	  });
 	
-	  var extPackage = 'enyo.depends(\n';
-	  _.reduce(manifests, function(pkg, manifest, index) {
-	    pkg += '"' + path.join(__dirname, '../../../lib/extensions', manifest.name, 'client') + '"';
-	    if(index !== manifests.length) {
-	      pkg += ',';
-	    }
-	    return pkg + '\n';
-	  }, extPackage);
-	  extPackage += ');';
-	
-	  fs.writeFile(path.join(__dirname, '../../../lib/client/extensions'), extPackage, callback);
+	  var extPackage = _.reduce(manifests, function(packString, manifest, index) {
+      if(index !== 0) {
+        packString += ',\n';
+      }
+      packString += '"' + path.join(extensionDir, manifest.name, 'client') + '"';
+      return packString;
+    }, 'enyo.depends(\n');
+    extPackage += '\n);';
+
+    fs.writeFile(
+      path.join(enyoDir, 'source/extensions/package.js'),
+      extPackage,
+      {
+        encoding: 'utf8'
+      },
+      function(err, stdout, stderr) {
+        if(err) {
+          logger.error(err);
+          process.exit(1);
+        }
+
+        callback();
+      }
+    );
 	};
 	
 	/**
@@ -142,9 +164,9 @@ var _				= require('underscore'),
 	exports.buildClient = function () {
 	  logger.info("Attempting to build client code.");
 	
-	  // Copy the extension client code into lib/client.
+	  /** Copy the extension client code into lib/client. */
 	  copyClientCode(function () {
-	    var deployScript = path.join(__dirname, '../../../lib/client/tools/deploy.sh -T');
+	    var deployScript = path.join(enyoDir, 'tools/deploy.sh -T');
 	    logger.info("Executing build...");
 	    exec(deployScript, function(err, stdout, stderr) {
 	      if (err !== null) {
@@ -152,25 +174,25 @@ var _				= require('underscore'),
 					process.exit(1);
 	      }
 	      if (stderr) {
-	        logger.error(stderr)
+	        logger.error(stderr);
 					process.exit(1);
 	      }
 	
 	      logger.info("Client built in lib/client/deploy");
 	      logger.info("Copying build to datasource.");
 	
-	      // Concating css
-	      var appCss = fs.readFileSync(path.join(__dirname, "../../../lib/client/deploy/build/app.css"), 'utf8');
-	      var enyoCss = fs.readFileSync(path.join(__dirname, "../../../lib/client/deploy/build/enyo.css"), 'utf8');
+	      /** Concating css */
+	      var appCss = fs.readFileSync(path.join(enyoDir, "deploy/build/app.css"), 'utf8');
+	      var enyoCss = fs.readFileSync(path.join(enyoDir, "deploy/build/enyo.css"), 'utf8');
 	      var coreCss = enyoCss + appCss;
 	
-	      // Concating javascript
-	      var appJs = fs.readFileSync(path.join(__dirname, "../../../lib/client/deploy/build/app.js"), 'utf8');
-	      var enyoJs = fs.readFileSync(path.join(__dirname, "../../../lib/client/deploy/build/enyo.js"), 'utf8');
+	      /** Concating javascript */
+	      var appJs = fs.readFileSync(path.join(enyoDir, "deploy/build/app.js"), 'utf8');
+	      var enyoJs = fs.readFileSync(path.join(enyoDir, "deploy/build/enyo.js"), 'utf8');
 	      var coreJs = enyoJs + appJs;
 	
-	      fs.writeFileSync(path.join(__dirname, '../../../node-datasource/public/javascripts/core.js'), coreJs);
-	      fs.writeFileSync(path.join(__dirname, '../../../node-datasource/public/stylesheets/core.css'), coreCss);
+	      fs.writeFileSync(path.join(datasourceDir, 'public/javascripts/core.js'), coreJs);
+	      fs.writeFileSync(path.join(datasourceDir, 'public/stylesheets/core.css'), coreCss);
 	    });
 	  });
 	};

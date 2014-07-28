@@ -7,12 +7,17 @@
   },
   "dependencies": {
     "express": "latest",
+    "express-session": "latest",
     "serve-favicon": "latest",
     "morgan": "latest",
     "cookie-parser": "latest",
     "body-parser": "latest",
     "debug": "latest",
     "ejs": "latest",
-    "less-middleware": "latest"
+    "less-middleware": "latest",
+    "passport": "latest",
+    "session.socket.io": "^0.1.6",
+    "socket.io": "latest",
+    "knex": "latest"
   }
 }

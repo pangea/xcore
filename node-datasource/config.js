@@ -30,7 +30,7 @@ newcap:true, noarg:true, regexp:true, undef:true, strict:true, trailing:true, wh
       keyFile: "./lib/private/key.pem",
       certFile: "./lib/private/server.crt",
       caFile: null, // needs to be an array of strings
-      saltFile: "./lib/private/salt.txt",
+      saltFile: "./lib/private/encryption_key.txt",
       xTupleDbDir: "/usr/local/xcore/databases",
       psqlPath: "psql",
       nodePath: "node",
