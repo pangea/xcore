@@ -264,14 +264,18 @@ nsp.on('connection', function(err, socket, session) {
     socket.on(verb, function(msg) {
       console.log(verb, 'request', msg);
       X.DB.Rest(verb, msg.data, 'admin', function(error, resp) {
-        var response = { reqId: msg.reqId };
+        var parsed, response = { reqId: msg.reqId };
 
         if(error) {
           response.error = error;
         } else {
           try {
-            var parsed = responseHandlers[verb].call(null, resp);
-            _.extend(response, parsed);
+            parsed = responseHandlers[verb].call(null, resp);
+            if(_.isArray(parsed)) {
+              response.data = parsed;
+            } else {
+              _.extend(response, parsed);
+            }
             console.log('response', response);
           } catch(e) {
             response.error = e;
