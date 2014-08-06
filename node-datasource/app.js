@@ -260,10 +260,12 @@ nsp.on('connection', function(err, socket, session) {
     return;
   }
 
+  var user = JSON.parse(session.passport.user);
+
   _.each(['GET', 'POST', 'PATCH', 'DELETE'], function(verb) {
     socket.on(verb, function(msg) {
       console.log(verb, 'request', msg);
-      X.DB.Rest(verb, msg.data, 'admin', function(error, resp) {
+      X.DB.Rest(verb, msg.data, user.uid, function(error, resp) {
         var parsed, response = { reqId: msg.reqId };
 
         if(error) {
