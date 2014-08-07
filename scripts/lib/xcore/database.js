@@ -246,7 +246,7 @@ logger				= require('./logger').logger;
 				}
 
 				/** Get all the extension from lib/extensions */
-				opts.extensions = _.union(opts.extensions, _.map(files, function (f) {
+				opts.extensions = _.union(opts.extensions, _.map(_.without(files, '.gitignore'), function (f) {
 					return path.join(__dirname, '../../../lib/extensions', f);
 				}));
 

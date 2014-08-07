@@ -14,7 +14,7 @@ var _				= require('underscore'),
       datasourceDir = path.join(__dirname, '../../../node-datasource');
 
   var getExtensionManifests = function() {
-	  var extensionDirs = fs.readdirSync(extensionDir),
+	  var extensionDirs = _.without(fs.readdirSync(extensionDir), '.gitignore'),
 	      manifests = {};
 	
 	  _.each(extensionDirs, function(dir, idx, dirs) {
