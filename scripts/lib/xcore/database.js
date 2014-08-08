@@ -634,8 +634,7 @@ logger				= require('./logger').logger;
 							process.exit(1);
 						}
 						else {
-							logger.info("Build completed successfully.");
-							process.exit(0);
+							logger.info("Database build completed successfully.");
 						}
 					}
 				);
