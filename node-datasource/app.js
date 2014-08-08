@@ -152,7 +152,7 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // TODO: Document the fuck out of this vvvvvvv
-var auth = require('../lib/extensions/authentication');
+var auth = require(X.options.datasource.authentication);
 
 // DISCOVERY SERVICE
 //app.use('/:org/discovery/v1alpha1/apis/v1alpha1/rest', routes.discovery_v1alpha1.getRest);
