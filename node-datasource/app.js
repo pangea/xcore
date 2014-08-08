@@ -88,7 +88,7 @@ XT = { };
   // TODO: Once we get around to having proper :org handling, we should convert
   //       this to make one connection for each database.
   var dbConf = X.options.databaseServer;
-  dbConf.database = 'dev';
+  dbConf.database = X.options.datasource.databases[0];
 
   X.DB = require('./lib/datasource')(dbConf);
   X.Query = require('./lib/query');
