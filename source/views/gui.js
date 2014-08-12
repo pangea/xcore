@@ -5,9 +5,9 @@ enyo.kind({
     onStatusAlert: "statusAlertAction"
   },
   registerExtension: function() {
-    throw new Error('Not Implemented');
+    throw new NotImplementedError();
   },
   statusAlertAction: function() {
-    throw new Error('Not Implemented');
+    throw new NotImplementedError();
   }
 });
