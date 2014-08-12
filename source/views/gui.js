@@ -5,9 +5,9 @@ enyo.kind({
     onStatusAlert: "statusAlertAction"
   },
   registerExtension: function() {
-    throw new NotImplementedError();
+    throw new NotImplementedError("GUI kinds must implement registerExtension");
   },
   statusAlertAction: function() {
-    throw new NotImplementedError();
+    throw new NotImplementedError("GUI kinds must implement statusAlertAction");
   }
 });
