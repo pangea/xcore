@@ -11,7 +11,7 @@
 
   socket.on('response', function(msg) {
     var req = enyo.store.getRecord(msg.reqId);
-    console.log(msg);
+
     if(msg.error) {
       req.fail(msg.error);
     } else {
