@@ -10,7 +10,9 @@ var externals = require('externals'),
 
     // A specific error type we can use in our abstract interface kinds
     NotImplementedError = function(message) {
-      this.message = message;
+      if(message) {
+        this.message = message;
+      }
       this.stack = (new Error()).stack;
     };
 
