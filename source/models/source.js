@@ -207,7 +207,7 @@
         type: parts[1]
       });
 
-      if(!isCollection) {
+      if(!isCollection && options.method !== 'POST') {
         if(record.naturalKey !== false) {
           options.id = record.get(record.naturalKey);
         } else if(record.primaryKey) {
