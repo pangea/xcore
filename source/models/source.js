@@ -207,12 +207,16 @@
         type: parts[1]
       });
 
-      if(!isCollection && record.get('id')) {
-        options.id = record.get('id');
+      if(!isCollection) {
+        if(record.naturalKey !== false) {
+          options.id = record.get(record.naturalKey);
+        } else if(record.primaryKey) {
+          options.id = record.get(record.primaryKey);
+        }
       }
 
       if(options.method == 'POST') {
-        options.data = _.omit(record.attributes, 'id');
+        options.data = _.omit(record.attributes, record.primaryKey);
       }
 
       if(options.method == 'PATCH') {
