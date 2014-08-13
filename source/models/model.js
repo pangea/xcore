@@ -3,14 +3,12 @@
 	  name: 'XM.Model',
 	  kind: 'enyo.Model',
     defaultSource: 'websocket',
-    published: {
-      /**
-       * Stores the name of the natural key for this model
-       * The default value of `false` dictates that the model has no natural key
-       * and the primaryKey should be used instead.
-       */
-      naturalKey: false
-    },
+    /**
+     * Stores the name of the natural key for this model
+     * The default value of `false` dictates that the model has no natural key
+     * and the primaryKey should be used instead.
+     */
+    naturalKey: false,
     parse: function(data) {
       // This means our data is actually an update to the model.  These come down
       // as JSON Patches.  So, we apply the patch and return that insead
@@ -30,6 +28,12 @@
 
 		  return false;
 	  },
+    didCommit: enyo.inherit(function(sup) {
+      return function() {
+        this.previous = this.attributes;
+        sup.apply(this, arguments);
+      };
+    })
   });
 
   enyo.kind({
