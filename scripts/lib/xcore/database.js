@@ -11,7 +11,7 @@ pg						= require('pg'),
 dataSource		= require('../../../node-datasource/lib/ext/datasource').dataSource;
 logger				= require('./logger').logger;
 
-(function () {
+(function() {
 	"use strict";
 
 	/**
@@ -107,7 +107,7 @@ logger				= require('./logger').logger;
     /** adapt our lingo to node-postgres lingo */
 		creds.host = creds.hostname;
     /** adapt our lingo to orm installer lingo */
-		creds.username = creds.user; 
+		creds.username = creds.user;
 
 		/** Build all databases in node-datasource/config.js unless the user set. */
 		if (opts.database) {
@@ -141,7 +141,7 @@ logger				= require('./logger').logger;
 				opts.allSql = opts.allSql + wipeSql;
 				callback(null, "Wiping views from: " + database);
 			});
-		}
+		};
 	};
 
 	/**
@@ -192,7 +192,7 @@ logger				= require('./logger').logger;
 				});
 			});
 
-		}
+		};
 	};
 
 	/**
@@ -252,7 +252,7 @@ logger				= require('./logger').logger;
 
 				callback(null, "Built list of extensions.");
 			});
-		}
+		};
 	};
 
 	/**
@@ -277,7 +277,7 @@ logger				= require('./logger').logger;
 							path.join(extension, "database/source"),
 						manifestFilename = path.join(dbSourceRoot, "manifest.js");
 
-				/** 
+				/**
          * Step 2:
 				 * Read the manifest files.
          */
@@ -520,7 +520,7 @@ logger				= require('./logger').logger;
 
 				callback(null, "Built all extension SQL");
 			});
-		}
+		};
 	};
 
 	/**
@@ -586,7 +586,7 @@ logger				= require('./logger').logger;
 				}
 
 				opts.extensions.push('../../../lib/extensions/' + opts.extension);
-			} else { 
+			} else {
         /** Let's assume they want to build the whole DB. */
 				runList.push(setExtensionsList(opts));
 			}
@@ -638,10 +638,70 @@ logger				= require('./logger').logger;
 						}
 					}
 				);
+			}); // async.series
+		}); // _.each(databases)
+	}; // buildDatabase
+
+	// Unregister an extension
+	exports.unregister = function (opts) {
+		var configs = readConfig(opts),
+			config = configs.config,
+			creds = configs.creds,
+			databases = configs.databases,
+			querySender = setQuerySender(opts.querydirect),
+			unregisterSql = ["delete from xt.usrext where usrext_id in "+
+														"(select usrext_id from xt.usrext inner join xt.ext on usrext_ext_id = ext_id where ext_name = $1);",
+
+				  "delete from xt.grpext where grpext_id in "+
+														"(select grpext_id from xt.grpext inner join xt.ext on grpext_ext_id = ext_id where ext_name = $1);",
+														"delete from xt.clientcode where clientcode_id in " +
+														"(select clientcode_id from xt.clientcode inner join xt.ext on clientcode_ext_id = ext_id where ext_name = $1);",
+
+														"delete from xt.dict where dict_id in " +
+														"(select dict_id from xt.dict inner join xt.ext on dict_ext_id = ext_id where ext_name = $1);",
+
+														"delete from xt.extdep where extdep_id in " +
+														"(select extdep_id from xt.extdep inner join xt.ext " +
+														"on extdep_from_ext_id = ext_id or extdep_to_ext_id = ext_id where ext_name = $1);",
+
+														"delete from xt.ext where ext_name = $1;"];
+
+
+
+		_.each(databases, function (database) {
+			creds.database = database;
+
+			if (opts.extension) {
+				if (typeof opts.extension == 'boolean') {
+					logger.error("You have to specify an extension name when using the --extension flag.");
+					process.exit(1);
+				}
+				
+			} 
+	
+			if (typeof opts.extension == 'string') {
+				opts.extension = [opts.extension];
+			}
+			_.each(opts.extension, function(ext) {
+				logger.info("Unregistering extension: " + ext);
+				creds.parameters = [ext];
+				
+				var queryEach = function(sql, sqlCallback) {
+					dataSource.query(sql, creds, sqlCallback);
+				};
+				async.eachSeries(unregisterSql, queryEach, function(err, res) {
+				if (err) {
+					logger.error(err);
+					process.exit(1);
+				} else {
+					logger.info("Extension unregistered");
+					process.exit(0);
+				}
+				});
+
 			});
 
-	});
-
-};
+		});
+	}; // unregister
 
 }());
