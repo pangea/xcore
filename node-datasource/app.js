@@ -239,7 +239,12 @@ var responseHandlers = {
       },
       'POST' : function(resp) {
         console.log(resp);
-        return JSON.parse(resp.rows[0].post);
+        var post = JSON.parse(resp.rows[0].post);
+        if(post.patches) {
+          post.data = { patches: post.patches };
+          delete post.patches;
+        }
+        return post;
       },
       'PATCH' : function(resp) {
         var patch = JSON.parse(resp.rows[0].patch);
@@ -278,12 +283,12 @@ nsp.on('connection', function(err, socket, session) {
             } else {
               _.extend(response, parsed);
             }
-            console.log('response', response);
           } catch(e) {
             response.error = e;
           }
         }
 
+        console.log('response', response);
         socket.emit('response', response);
       });
     });
