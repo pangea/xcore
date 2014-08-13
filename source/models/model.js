@@ -3,9 +3,17 @@
 	  name: 'XM.Model',
 	  kind: 'enyo.Model',
     defaultSource: 'websocket',
+    published: {
+      /**
+       * Stores the name of the natural key for this model
+       * The default value of `false` dictates that the model has no natural key
+       * and the primaryKey should be used instead.
+       */
+      naturalKey: false
+    },
     parse: function(data) {
       // This means our data is actually an update to the model.  These come down
-      // as JSON Patches.  So, we apply the patch return that insead
+      // as JSON Patches.  So, we apply the patch and return that insead
       // NOTE: This operation does not change any values in the attributes hash!
       if(data.patches) {
         return jiff.patch(data.patches, this.attributes);
