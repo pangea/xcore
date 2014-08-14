@@ -48,19 +48,27 @@
      * @param {Object} opts       options to use while fetching
      * @param {Object} opts.force if true, forces the default behavior of fetch
      */
-    fetch: function(opts) {
-      if(!opts) { opts = {}; }
-      if(opts.force) {
-        this.inherited(arguments);
-        return;
-      }
+    fetch: enyo.inherit(function(sup) {
+      return function(opts) {
+        if(!opts) { opts = {}; }
+        if(opts.force) {
+          delete opts.force; // don't pollute the regular call
+          sup.call(this, opts);
+          return;
+        }
 
-      var existingModels = this.store.findLocal(this.model, opts);
-      if(existingModels.length) {
-        this.reset(existingModels);
-      } else {
-        this.inherited(arguments);
-      }
-    }
+        var existingModels = this.store.findLocal(this.model, enyo.except(['success', 'fail'], opts));
+        if(existingModels.length) {
+          // this is done async to maintain feature pairity with regular fetch
+          enyo.asyncMethod(this, function() {
+            if(!opts.strategy) { opts.strategy = 'merge'; }
+            this.didFetch(this, opts, existingModels);
+          });
+          // this.reset(existingModels);
+        } else {
+          sup.call(this, opts);
+        }
+      };
+    })
   });
 }());
