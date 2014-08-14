@@ -30,7 +30,7 @@
 	  },
     didCommit: enyo.inherit(function(sup) {
       return function() {
-        this.previous = this.attributes;
+        this.previous = enyo.clone(this.attributes);
         sup.apply(this, arguments);
       };
     })
