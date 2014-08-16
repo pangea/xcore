@@ -238,7 +238,6 @@ var responseHandlers = {
         return JSON.parse(resp.rows[0].get);
       },
       'POST' : function(resp) {
-        console.log(resp);
         var post = JSON.parse(resp.rows[0].post);
         if(post.patches) {
           post.data = { patches: post.patches };
@@ -253,7 +252,6 @@ var responseHandlers = {
         return patch;
       },
       'DELETE' : function(resp) {
-        console.log(resp);
         return JSON.parse(resp.rows[0].delete);
       }
     };
@@ -269,8 +267,8 @@ nsp.on('connection', function(err, socket, session) {
 
   _.each(['GET', 'POST', 'PATCH', 'DELETE'], function(verb) {
     socket.on(verb, function(msg) {
-      console.log(verb, 'request', msg);
       X.DB.Rest(verb, msg.data, user.uid, function(error, resp) {
+console.log(resp);
         var parsed, response = { reqId: msg.reqId };
 
         if(error) {
@@ -288,7 +286,6 @@ nsp.on('connection', function(err, socket, session) {
           }
         }
 
-        console.log('response', response);
         socket.emit('response', response);
       });
     });
