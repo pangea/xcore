@@ -19,10 +19,42 @@
     }
   });
 
+  function getRecordForKind(kind, id) {
+    var tmp = enyo.store.createRecord(kind),
+        pk = tmp.primaryKey,
+        opts = {};
+
+    opts[pk] = id;
+
+    tmp.destroyLocal();  // clean up after ourselves
+
+    return enyo.store.findLocal(kind, opts);
+  }
+
   socket.on('update', function(msg) {
-    // not used right now.  Will be used for unsolicited model updates from
-    // the server
-    console.log(msg);
+    var kind = msg.nameSpace + '.' + msg.type,
+        record = getRecordForKind(kind, msg.id);
+
+    if(record) {
+      record.setObject(record.parse(msg.data));
+    } else if(!msg.data.patches) {
+      // not really sure how to handle patches to objects we don't have yet.
+      enyo.store.createRecord(kind, msg.data);
+    }
+
+    console.log('update', msg);
+  });
+
+  socket.on('delete', function(msg) {
+    var kind = msg.nameSpace + '.' + msg.type,
+        record = getRecordForKind(kind, msg.id);
+
+    // If we don't have the record, we don't have to do anything!
+    if(record) {
+      record.destroyLocal();
+    }
+
+    console.log('delete', msg);
   });
 }());
 
