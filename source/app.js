@@ -161,6 +161,17 @@
       }
 
       return this._currentUser;
+    },
+    getRecordForKind: function(kind, id) {
+      var tmp = enyo.store.createRecord(kind),
+          pk = tmp.primaryKey,
+          opts = {};
+
+      opts[pk] = id;
+
+      tmp.destroyLocal();  // clean up after ourselves
+
+      return enyo.store.findLocal(kind, opts);
     }
   });
 
