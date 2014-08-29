@@ -84,7 +84,7 @@
         data = JSON.stringify(data);
       }
 
-      DB.raw("NOTIFY ?, $notify$?$notify&", [channel, data]).exec();
+      DB.raw("NOTIFY %@, $notify$%@$notify$".f(channel, data)).exec();
     };
 
     return DB;
