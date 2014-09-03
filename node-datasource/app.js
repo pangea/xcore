@@ -5,6 +5,8 @@ jsonpatch = require("json-patch");
 SYS = {};
 XT = { };
 
+var Debug = false;
+
 (function () {
   "use strict";
 
@@ -62,6 +64,8 @@ XT = { };
   // Set the options.
   X.setup(options);
 
+  Debug = X.options.datasource.debugging;
+
   // load some more required files
   // var datasource = require("./lib/ext/datasource");
   //require("./lib/ext/models");
@@ -107,6 +111,26 @@ XT = { };
   XT.session.loadSessionObjects(XT.session.SCHEMA, sessionOptions);
   XT.session.loadSessionObjects(XT.session.PRIVILEGES, sessionOptions);
 	*/
+
+  X.dbListeners = {};
+
+  X.DB.Listen("nodext", function(msg) {
+    var handler;
+    if(_.isObject(msg)) {
+      handler = msg.handler;
+      delete msg.handler;
+
+      if(handler) {
+        if(X.dbListeners[handler]) {
+          X.dbListeners[handler].call(null, msg);
+        } else {
+          X.err("No listeners found for handler '" + handler + "'");
+        }
+      }
+    } else {
+      console.log(msg);
+    }
+  });
 
 }());
 
@@ -223,17 +247,27 @@ app.use(function(err, req, res, next) {
     });
 });
 
+// TODO: Switch to passport.session.io
 var SockSession = require('session.socket.io'),
     sock = require('socket.io')({ serveClient: true, path: '/clientsock' }),
     io = new SockSession(sock, sessionStore, cookieParser),
-    nsp = io.of('/clientsock');
+    nsp = io.of('/clientsock'),
+    doNotify = function(handler, data) {
+      var msg = {
+            handler: handler
+          };
 
-// keep a reference to the original server so we can work with it
-io.server = sock;
-// keep a copy of io on X so we can use it elsewhere as needed
-X.sock = io;
+      _.extend(msg, data);
 
-var responseHandlers = {
+      X.DB.Notify("nodext", msg);
+    },
+    doModelUpdate = function(data) {
+      doNotify("ModelUpdate", data);
+    },
+    doModelDelete = function(data) {
+      doNotify("ModelDelete", data);
+    },
+    responseHandlers = {
       'GET' : function(resp) {
         return JSON.parse(resp.rows[0].get);
       },
@@ -243,23 +277,45 @@ var responseHandlers = {
           post.data = { patches: post.patches };
           delete post.patches;
         }
+        doModelUpdate(post);
         return post;
       },
       'PATCH' : function(resp) {
         var patch = JSON.parse(resp.rows[0].patch);
         patch.data = { patches: patch.patches };
         delete patch.patches;
+        doModelUpdate(patch);
         return patch;
       },
+      // NOTE: This function hasn't been well tested or used.  It was added
+      //       mostly to be here in case we actually needed to implement
+      //       object deletion.  Normally, this isn't required for us.
       'DELETE' : function(resp) {
-        return JSON.parse(resp.rows[0].delete);
+        var del = JSON.parse(resp.rows[0].delete);
+        doModelDelete(del);
+        return del;
       }
     };
+
+// keep a reference to the original server so we can work with it
+io.server = sock;
+// keep a copy of io on X so we can use it elsewhere as needed
+X.sock = io;
+
+// Add our listeners
+_.extend(X.dbListeners, {
+  "ModelUpdate": function(msg) {
+    sock.of('/clientsock').emit('update', msg);
+  },
+  "ModelDelete": function(msg) {
+    sock.of('/clientsock').emit('delete', msg);
+  }
+});
 
 nsp.on('connection', function(err, socket, session) {
   if(err) {
     socket.emit('logout', 'forbidden');
-    // socket.disconnect('unathorized');
+    socket.disconnect('forbidden');
     return;
   }
 
@@ -267,6 +323,7 @@ nsp.on('connection', function(err, socket, session) {
 
   _.each(['GET', 'POST', 'PATCH', 'DELETE'], function(verb) {
     socket.on(verb, function(msg) {
+      if(Debug) { console.log(verb, 'request', msg); }
       X.DB.Rest(verb, msg.data, user.uid, function(error, resp) {
 console.log(resp);
         var parsed, response = { reqId: msg.reqId };
@@ -285,6 +342,8 @@ console.log(resp);
             response.error = e;
           }
         }
+
+        if(Debug) { console.log('response', response); }
 
         socket.emit('response', response);
       });

@@ -12,7 +12,11 @@
     var DB = knex({
           client: 'pg',
           connection: config,
-          debug: debugMode
+          debug: debugMode,
+          pool: {
+            min: 2,
+            max: 20
+          }
         });
 
     DB.Rest = function(method, payload, user, callback) {
@@ -54,6 +58,33 @@
           callback({ message: error.message, detail: error.detail, stack: error.stack.split('\n') });
         }
       );
+    };
+
+    DB.Listen = function(channel, handler) {
+      DB.client.acquireConnection().then(function(conn) {
+        conn.on('notification', function(msg) {
+          var payload = msg.payload;
+
+          try {
+            payload = JSON.parse(payload);
+          } catch(e) {
+            // payload isn't JSON.  Nothing to do here but squelch the error.
+          } finally {
+            handler(payload);
+          }
+        });
+
+        conn.query("LISTEN " + channel);
+        X.log("Listening for notifications on the ", channel, " channel for ", DB.client.database());
+      });
+    };
+
+    DB.Notify = function(channel, data) {
+      if(_.isObject(data)) {
+        data = JSON.stringify(data);
+      }
+
+      DB.raw("NOTIFY %@, $notify$%@$notify$".f(channel, data)).exec();
     };
 
     return DB;
