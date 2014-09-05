@@ -186,6 +186,16 @@
       tmp.destroyLocal();  // clean up after ourselves
 
       return enyo.store.findLocal(kind, opts);
+    },
+    /**
+     * resize is a convenience function for forcing a resize of everything on
+     * the screen.  There are a couple of cases where triggering a resize on a
+     * specific object doesn't work or finding the correct object to call it on
+     * is non-trivial.  This allows you to quickly force a full screen refresh
+     * of all Enyo objects that draw themselves based on the size of the screen.
+     */
+    resize: function() {
+      window.dispatchEvent(new Event('resize'));
     }
   });
 
