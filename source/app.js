@@ -14,9 +14,23 @@
        * require a name, but some GUIs might require more.
        */
       _requiredExtensionFields: [ 'name' ],
-      _currentUser: currentUser
+      _currentUser: currentUser,
+      /**
+       * TODO: Documentation!  :D
+       */
+      settings: []
     },
     renderOnStart: false,
+    /**
+     * addSetting pushes a new setting into the array of settings.
+     * Modules implementing their own custom settings paradigm can override this
+     * method to add their own logic.
+     *
+     * @param setting the setting to push onto the array of settings
+     */
+    addSetting: function(setting) {
+      this.settings.push(setting);
+    },
     /**
      * Registers the GUI to be used by the application
      *
