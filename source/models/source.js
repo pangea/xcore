@@ -180,7 +180,7 @@
       this.setupRequest(record, options);
       this.makeRequest(options);
     },
-    delete: function(record, options) {
+    destroy: function(record, options) {
       options.method = 'DELETE';
       this.setupRequest(record, options);
       this.makeRequest(options);
