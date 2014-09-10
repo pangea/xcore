@@ -177,16 +177,57 @@
       return this._currentUser;
     },
     getRecordForKind: function(kind, id) {
-      var tmp = enyo.store.createRecord(kind),
+      if(!enyo.isFunction(kind)) {
+        kind = enyo.isString(kind) && enyo.getPath(kind);
+      }
+
+      if(!kind) {
+        throw new Error('Invalid kind');
+      }
+
+      var tmp = new kind(),
           pk = tmp.primaryKey,
-          opts = {};
+          opts = {},
+          store = tmp.store;
 
       opts[pk] = id;
 
       tmp.destroyLocal();  // clean up after ourselves
 
-      return enyo.store.findLocal(kind, opts);
+      return store.findLocal(kind, opts);
     },
+    findModelByKey: function(kind, key, opts) {
+      if(!enyo.isFunction(kind)) {
+        kind = enyo.isString(kind) && enyo.getPath(kind);
+      }
+
+      if(!kind) {
+        throw new Error('Invalid kind');
+      }
+
+      var tmp = new kind(),
+          searchKey = tmp.naturalKey || tmp.primaryKey,
+          searchOpts = {},
+          model;
+
+      if(!searchKey) {
+        throw new Error(tmp.kindName + ' has neither a natural or primary key');
+      }
+
+      searchOpts[searchKey] = key;
+
+      model = tmp.store.findLocal(tmp.kindName, searchOpts);
+
+      if(!model) {
+        tmp.setKey(key);
+        tmp.fetch(opts);
+      } else {
+        tmp.destroyLocal();
+        enyo.asyncMethod(this, function() {
+          opts.success && opts.success(model);
+        });
+      }
+    }
     /**
      * resize is a convenience function for forcing a resize of everything on
      * the screen.  There are a couple of cases where triggering a resize on a

@@ -13,9 +13,9 @@
     var req = enyo.store.getRecord(msg.reqId);
 
     if(msg.error) {
-      req.fail(msg.error);
+      enyo.asyncMethod(req, 'fail', msg.error);
     } else {
-      req.success(msg.data);
+      enyo.asyncMethod(req, 'success', msg.data);
     }
   });
 
@@ -168,7 +168,7 @@
     },
     fetch: function(record, options) {
       // If the record has an id, we don't need to generate a query for it
-      if(!record.get('id')) {
+      if(!(record.getKey && record.getKey())) {
         options.query = this.generateQuery(record, options);
       }
       this.setupRequest(record, options);
@@ -239,15 +239,11 @@
       });
 
       if(!isCollection && options.method !== 'POST') {
-        if(record.naturalKey !== false) {
-          options.id = record.get(record.naturalKey);
-        } else if(record.primaryKey) {
-          options.id = record.get(record.primaryKey);
-        }
+        options.id = record.getKey();
       }
 
       if(options.method == 'POST') {
-        options.data = _.omit(record.attributes, record.primaryKey);
+        options.data = enyo.except([record.primaryKey], record.attributes);
       }
 
       if(options.method == 'PATCH') {
@@ -257,9 +253,9 @@
       // options.query = this.generateQuery(record);
     },
     makeRequest: function(options) {
-      var properties = _.pick(options, 'success', 'fail'),
-          attributes = _.pick(options, 'method');
-      options = _.omit(options, 'success', 'fail', 'method');
+      var properties = enyo.only(['success', 'fail'], options, true),
+          attributes = enyo.only(['method'], options, true);
+      options = enyo.except(['success', 'fail', 'method', 'strategy'], options);
       attributes.data = options;
 
       new XM.WebsocketRequest(attributes, properties);
@@ -267,4 +263,5 @@
   });
 
   enyo.store.addSources({ websocket: 'XM.WebsocketSource' });
+  XM.store.addSources({ websocket: 'XM.WebsocketSource' });
 }());
