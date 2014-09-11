@@ -227,7 +227,7 @@
           opts.success && opts.success(model);
         });
       }
-    }
+    },
     /**
      * resize is a convenience function for forcing a resize of everything on
      * the screen.  There are a couple of cases where triggering a resize on a
