@@ -134,11 +134,10 @@ var Debug = false;
 
 }());
 
-
-
 // Configure Express Application
 var express = require('express'),
     session = require('express-session'),
+    store = require('connect-session-knex')(session),
     passport = require('passport'),
     path = require('path'),
     favicon = require('serve-favicon'),
@@ -147,7 +146,10 @@ var express = require('express'),
     bodyParser = require('body-parser'),
     routes = require('./routes/routes'),
     cookieParser = CookieParser(X.options.encryptionKey),
-    sessionStore = new session.MemoryStore();
+    sessionStore = new store({
+      knex: X.DB,
+      tablename: 'xcore_sessions'
+    });
 
 var app = express();
 X.app = app;  // Never know when this might come in handy
@@ -164,8 +166,8 @@ app.use(cookieParser);
 app.use(require('less-middleware')(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// TODO: This is a first pass and should NOT BE PART OF THE FINAL PRODUCT!!!!!!!
-// Session shit
+// Initialize Session
+// TODO: Clear old sessions?
 app.use(session({
   secret: X.options.encryptionKey,
   store: sessionStore,

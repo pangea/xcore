@@ -12,6 +12,7 @@
     "morgan": "latest",
     "cookie-parser": "latest",
     "body-parser": "latest",
+    "connect-session-knex": "git+https://github.com/chall8908/connect-session-knex.git#fix_expire_bug",
     "debug": "latest",
     "ejs": "latest",
     "less-middleware": "latest",
