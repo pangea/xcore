@@ -189,26 +189,34 @@
      * Generates a Query from a record and, optionally, some additional options
      * @see node-datasource/lib/query/xtget_query.js
      *
-     * @param {Object} record record to generate a query for
-     * @param {Object} record.attributes these will be converted into the query
-     * @param {Object} [options] additional options to attach to the query
-     * @param {Object} [options.orderBy] attributes to order by
-     * @param {Number} [options.rowLimit] total number of records to return
-     * @param {Number} [options.rowOffset] number of rows to skip
-     * @param {Boolean} [count] Only return the number of rows, not their contents
+     * @param {Object}  record              record to generate a query for
+     * @param {Object}  [record.attributes] these will be converted into the
+     *                                      query
+     * @param {Object}  [options]           additional options to attach to the
+     *                                      query
+     * @param {Object}  [options.orderBy]   attributes to order by
+     * @param {Number}  [options.rowLimit]  total number of records to return
+     * @param {Number}  [options.rowOffset] number of rows to skip
+     * @param {Boolean} [options.count]     Only return the number of rows, not
+     *                                      their contents
      *
      * @return {Object} the query object, if one was creatable
      */
     generateQuery: function(record, options) {
-      var query = {};
+      var query = {},
+          queryKeys = ['orderBy', 'rowLimit', 'rowOffset', 'count', 'parameters'];
 
       if(!record.attributes && !options) { return; }
 
       if(options) {
-        query = _.pick(options, 'orderBy', 'rowLimit', 'rowOffset', 'count', 'parameters');
+        query = enyo.only(queryKeys, options, true);
+        enyo.forEach(queryKeys, function(key) {
+          delete options[key];
+        });
       }
 
       if(record.attributes) {
+        // Combine any record attributes with the options passed in
         query.parameters = _.chain(query.parameters)
           .union(
             _.map(record.attributes, function(value, attribute) {
@@ -224,7 +232,7 @@
         }
       }
 
-      if(_.keys(query).length === 0) { return; }
+      if(enyo.keys(query).length === 0) { return; }
 
       return query;
     },
