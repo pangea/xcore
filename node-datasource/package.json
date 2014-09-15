@@ -6,19 +6,19 @@
     "start": "node ./bin/www"
   },
   "dependencies": {
-    "express": "latest",
-    "express-session": "latest",
-    "serve-favicon": "latest",
-    "morgan": "latest",
-    "cookie-parser": "latest",
     "body-parser": "latest",
     "connect-session-knex": "git+https://github.com/chall8908/connect-session-knex.git#fix_expire_bug",
+    "cookie-parser": "latest",
     "debug": "latest",
     "ejs": "latest",
+    "express": "latest",
+    "express-session": "latest",
+    "knex": "latest",
     "less-middleware": "latest",
+    "morgan": "latest",
     "passport": "^0.2.0",
+    "serve-favicon": "latest",
     "session.socket.io": "^0.1.6",
-    "socket.io": "latest",
-    "knex": "latest"
+    "socket.io": "latest"
   }
 }
