@@ -195,6 +195,11 @@ app.use('/login', auth({
                     failureRedirect: '/?fail'
                   }));
 
+app.use('/logout', function(req, res) {
+  req.logout();
+  res.redirect('/');
+});
+
 app.use('/app', function(req, res) {
   var user = req.user;
   if(!user || !user.groups) {
