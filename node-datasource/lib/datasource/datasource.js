@@ -9,6 +9,13 @@
     if(debugMode) {
       console.log('connecting to database\n', config);
     }
+
+    // convert xTuple style host declaration to Knex style
+    if(config.hostname && !config.host) {
+      config.host = config.hostname;
+      delete config.hostname;
+    }
+
     var DB = knex({
           client: 'pg',
           connection: config,
