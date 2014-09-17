@@ -1,3 +1,6 @@
 [submodule "enyo"]
   path=lib/client
   url=git://github.com/pangea/bootplate.git
+[submodule "node-datasource/lib/xMerchant"]
+	path = node-datasource/lib/xMerchant
+	url = git@github.com:pangea/xMerchant.git
