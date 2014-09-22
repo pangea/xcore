@@ -175,7 +175,6 @@
       this.makeRequest(options);
     },
     commit: function(record, options) {
-      console.log(arguments);
       options.method = (record.isNew ? 'POST' : 'PATCH');
       this.setupRequest(record, options);
       this.makeRequest(options);
@@ -219,7 +218,7 @@
         // Combine any record attributes with the options passed in
         query.parameters = _.chain(query.parameters)
           .union(
-            _.map(record.attributes, function(value, attribute) {
+            _.map(record.raw(), function(value, attribute) {
               return { attribute: attribute, operator: '=', value: value };
             })
           )
@@ -251,11 +250,11 @@
       }
 
       if(options.method == 'POST') {
-        options.data = enyo.except([record.primaryKey], record.attributes);
+        options.data = enyo.except([record.primaryKey], record.raw());
       }
 
       if(options.method == 'PATCH') {
-        options.data = jiff.diff(record.previous, record.attributes);
+        options.data = jiff.diff(record.previous, record.raw());
       }
 
       // options.query = this.generateQuery(record);
