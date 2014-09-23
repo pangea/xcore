@@ -256,18 +256,23 @@ app.use(function(err, req, res, next) {
 
 // TODO: Switch to passport.session.io
 var SockSession = require('session.socket.io'),
-    SockStore = require('socket.io-redis'),
     sock = require('socket.io')({ serveClient: true, path: '/clientsock' }),
     io = new SockSession(sock, sessionStore, cookieParser),
     nsp = io.of('/clientsock'),
     doNotify = function(handler, data) {
-      sock.of('/clientsock').emit(handler, data);
+      var msg = {
+            handler: handler
+          };
+
+      _.extend(msg, data);
+
+      X.DB.Notify("nodext", msg);
     },
     doModelUpdate = function(data) {
-      doNotify("update", data);
+      doNotify("ModelUpdate", data);
     },
     doModelDelete = function(data) {
-      doNotify("delete", data);
+      doNotify("ModelDelete", data);
     },
     responseHandlers = {
       'GET' : function(resp) {
@@ -289,6 +294,9 @@ var SockSession = require('session.socket.io'),
         doModelUpdate(patch);
         return patch;
       },
+      // NOTE: This function hasn't been well tested or used.  It was added
+      //       mostly to be here in case we actually needed to implement
+      //       object deletion.  Normally, this isn't required for us.
       'DELETE' : function(resp) {
         var del = JSON.parse(resp.rows[0].delete);
         doModelDelete(del);
@@ -296,12 +304,20 @@ var SockSession = require('session.socket.io'),
       }
     };
 
-sock.adapter(SockStore(X.options.redisServer));
-
 // keep a reference to the original server so we can work with it
 io.server = sock;
 // keep a copy of io on X so we can use it elsewhere as needed
 X.sock = io;
+
+// Add our listeners
+_.extend(X.dbListeners, {
+  "ModelUpdate": function(msg) {
+    sock.of('/clientsock').emit('update', msg);
+  },
+  "ModelDelete": function(msg) {
+    sock.of('/clientsock').emit('delete', msg);
+  }
+});
 
 nsp.on('connection', function(err, socket, session) {
   if(err) {

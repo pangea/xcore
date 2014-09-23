@@ -73,11 +73,7 @@ newcap:true, noarg:true, regexp:true, undef:true, strict:true, trailing:true, wh
       port: 5432,
       user: "admin",
       password: "admin"
-    },
-    redisServer: {
-      host: 'localhost',
-      port: 6379
-    }/*,
+    } /*,
     biServer: {
       bihost: "localhost",
       port: 8080,

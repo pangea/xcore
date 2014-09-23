@@ -144,13 +144,7 @@ install_packages() {
   sudo apt-get -q -y install postgresql-${PG_VERSION_NUM[1]}-plv8
   sudo apt-get -q -y install libpq-dev
 
-  echo "Installing Redis"
-  sudo apt-get -qy install redis-server
-
   install_npm
-
-  echo "Cleaning Up..."
-  sudo apt-get -qy autoremove
 }
 
 # Use only if running from a debian package install for the first time
