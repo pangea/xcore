@@ -44,9 +44,11 @@
       return function(prop, value, force) {
         sup.apply(this, arguments);
 
-        if( this.previous[prop] instanceof enyo.Model ||
-            this.previous[prop] instanceof enyo.Collection) {
-          this.previous[prop] = value.raw();
+        var prev = this.previous[prop];
+
+        if( prev instanceof enyo.Model ||
+            prev instanceof enyo.Collection) {
+          this.previous[prop] = prev.raw();
         }
       };
     }),
