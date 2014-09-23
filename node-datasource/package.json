@@ -19,6 +19,7 @@
     "passport": "^0.2.0",
     "serve-favicon": "latest",
     "session.socket.io": "^0.1.6",
-    "socket.io": "latest"
+    "socket.io": "latest",
+    "socket.io-redis": "^0.1.3"
   }
 }
