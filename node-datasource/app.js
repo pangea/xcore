@@ -136,8 +136,8 @@ var Debug = false;
 
 // Configure Express Application
 var express = require('express'),
-    session = require('express-session'),
-    store = require('connect-session-knex')(session),
+    Session = require('express-session'),
+    Store = require('connect-session-knex')(Session),
     passport = require('passport'),
     path = require('path'),
     favicon = require('serve-favicon'),
@@ -146,10 +146,20 @@ var express = require('express'),
     bodyParser = require('body-parser'),
     routes = require('./routes/routes'),
     cookieParser = CookieParser(X.options.encryptionKey),
-    sessionStore = new store({
+    sessionStore = new Store({
       knex: X.DB,
       tablename: 'xcore_sessions'
-    });
+    }),
+    // These are stored separately for use in Primus
+    session = Session({
+      secret: X.options.encryptionKey,
+      store: sessionStore,
+      cookie: { secure: true },
+      resave: false,
+      saveUninitialized: false
+    }),
+    passportInit = passport.initialize(),
+    passportSession = passport.session();
 
 var app = express();
 X.app = app;  // Never know when this might come in handy
@@ -168,14 +178,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Initialize Session
 // TODO: Clear old sessions?
-app.use(session({
-  secret: X.options.encryptionKey,
-  store: sessionStore,
-  resave: false,
-  saveUninitialized: false
-}));
-app.use(passport.initialize());
-app.use(passport.session());
+app.use(session);
+app.use(passportInit);
+app.use(passportSession);
 
 // TODO: Document the fuck out of this vvvvvvv
 var auth = require(X.options.datasource.authentication);
@@ -254,11 +259,15 @@ app.use(function(err, req, res, next) {
     });
 });
 
-// TODO: Switch to passport.session.io
-var SockSession = require('session.socket.io'),
-    sock = require('socket.io')({ serveClient: true, path: '/clientsock' }),
-    io = new SockSession(sock, sessionStore, cookieParser),
-    nsp = io.of('/clientsock'),
+var https = require('https'),
+    server = https.createServer({
+      key: X.fs.readFileSync(X.options.datasource.keyFile),
+      cert: X.fs.readFileSync(X.options.datasource.certFile)
+    }, app);
+
+var Primus = require('primus'),
+    io = new Primus(server),
+    allowedVerbs = ['GET', 'POST', 'PATCH', 'DELETE'],
     doNotify = function(handler, data) {
       var msg = {
             handler: handler
@@ -294,9 +303,6 @@ var SockSession = require('session.socket.io'),
         doModelUpdate(patch);
         return patch;
       },
-      // NOTE: This function hasn't been well tested or used.  It was added
-      //       mostly to be here in case we actually needed to implement
-      //       object deletion.  Normally, this isn't required for us.
       'DELETE' : function(resp) {
         var del = JSON.parse(resp.rows[0].delete);
         doModelDelete(del);
@@ -304,36 +310,38 @@ var SockSession = require('session.socket.io'),
       }
     };
 
-// keep a reference to the original server so we can work with it
-io.server = sock;
-// keep a copy of io on X so we can use it elsewhere as needed
-X.sock = io;
+// Save compiled client library
+io.save(X.path.join(__dirname, 'public', 'javascripts', 'primus.js'));
 
-// Add our listeners
-_.extend(X.dbListeners, {
-  "ModelUpdate": function(msg) {
-    sock.of('/clientsock').emit('update', msg);
-  },
-  "ModelDelete": function(msg) {
-    sock.of('/clientsock').emit('delete', msg);
-  }
-});
+// IMPORTANT!!
+// These middlewares MUST be the same as the ones used for Express
+// If they are not, sessions may not properly propagate between Express and Primus
+io.before('cookie', cookieParser);
+io.before('session', session);
+// io.before('passport init', passportInit);
+// io.before('passport sess', passportSession);
 
-nsp.on('connection', function(err, socket, session) {
-  if(err) {
-    socket.emit('logout', 'forbidden');
-    socket.disconnect('forbidden');
-    return;
+io.on('connection', function(sock) {
+  var user;
+  try {
+    user = JSON.parse(sock.request.session.passport.user);
+  } catch(e) {
+    sock.end('forbidden');
   }
 
-  var user = JSON.parse(session.passport.user);
+  sock.on('data', function(payload) {
+    var verb = payload.method,
+        msg = payload.data;
 
-  _.each(['GET', 'POST', 'PATCH', 'DELETE'], function(verb) {
-    socket.on(verb, function(msg) {
+    if(_.include(allowedVerbs, verb)) {
       if(Debug) { console.log(verb, 'request', msg); }
-      X.DB.Rest(verb, msg.data, user.uid, function(error, resp) {
-console.log(resp);
-        var parsed, response = { reqId: msg.reqId };
+      X.DB.Rest(verb, msg, user.uid, function(error, resp) {
+
+        var parsed,
+            response = { 
+              handler: 'response',
+              reqId: payload.reqId
+            };
 
         if(error) {
           response.error = error;
@@ -352,11 +360,24 @@ console.log(resp);
 
         if(Debug) { console.log('response', response); }
 
-        socket.emit('response', response);
+        sock.write(response);
       });
-    });
+    }
+
+    console.log(payload);
   });
 });
 
-exports.router = app;
-exports.socket = io;
+// Add our listeners
+_.extend(X.dbListeners, {
+  "ModelUpdate": function(msg) {
+    msg.handler = 'update';
+    io.write(msg);
+  },
+  "ModelDelete": function(msg) {
+    msg.handler = 'delete';
+    io.write(msg);
+  }
+});
+
+server.listen(8443);

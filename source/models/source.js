@@ -2,14 +2,7 @@
 /*global io, enyo*/
 (function() {
   "use strict";
-  var socket = xCore.socket = io('/clientsock');
-
-  socket.on('session expired', function(err) {
-    alert('You session has expired.  Please log in again.');
-    location.replace('/');
-  });
-
-  socket.on('response', function(msg) {
+  function handleResponse(msg) {
     var req = enyo.store.getRecord(msg.reqId);
 
     if(msg.error) {
@@ -17,9 +10,9 @@
     } else {
       enyo.asyncMethod(req, 'success', msg.data);
     }
-  });
+  }
 
-  socket.on('update', function(msg) {
+  function handleUpdate(msg) {
     var kind = msg.nameSpace + '.' + msg.type,
         record = xCore.getRecordForKind(kind, msg.id);
 
@@ -42,9 +35,9 @@
     }
 
     console.log('update', msg);
-  });
+  }
 
-  socket.on('delete', function(msg) {
+  function handleDelete(msg) {
     var kind = msg.nameSpace + '.' + msg.type,
         record = xCore.getRecordForKind(kind, msg.id);
 
@@ -54,6 +47,39 @@
     }
 
     console.log('delete', msg);
+  }
+
+  var socket = xCore.socket = Primus.connect();
+
+  socket.on('open', function() {
+    console.log('The merging is complete!');
+  });
+
+  socket.on('data', function(data) {
+    if(data === 'forbidden') {
+      alert('Your Session has expired.  Please log in again.');
+      location.replace('/logout');
+      return; // for sanity
+    }
+
+    switch(data.handler) {
+      case "response":
+        handleResponse(data);
+        break;
+      case "update":
+        handleUpdate(data);
+        break;
+      case "delete":
+        handleDelete(data);
+        break;
+      default:
+        throw new Error('unknown handler: ' + data.handler);
+    }
+  });
+
+  socket.on('error', function(err) {
+    console.log('We burn!');
+    console.error(err);
   });
 }());
 
@@ -69,6 +95,7 @@
       this.inherited(arguments);
 
       var payload = {
+            method: this.get('method'),
             reqId: this.euid
           },
           data = this.get('data');
@@ -86,7 +113,7 @@
       }
 
       payload.data = data;
-      xCore.socket.emit(this.get('method'), payload);
+      xCore.socket.write(payload);
     },
     success: function() {
       throw new Error("Not implemented.  You must provide a `success` function when creating a WebsocketRequest");
