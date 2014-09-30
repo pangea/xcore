@@ -2,6 +2,12 @@
 /*global io, enyo*/
 (function() {
   "use strict";
+
+  /**
+   * Handle responses to requests from the server.
+   *
+   * @param {Object} msg the payload returned from the server
+   */
   function handleResponse(msg) {
     var req = enyo.store.getRecord(msg.reqId);
 
@@ -12,6 +18,12 @@
     }
   }
 
+  /**
+   * Handle model updates from the server.  These are unsolicited updates caused
+   * by other users modifying models.
+   *
+   * @param {Object} msg the payload sent by the server
+   */
   function handleUpdate(msg) {
     var kind = msg.nameSpace + '.' + msg.type,
         record = xCore.getRecordForKind(kind, msg.id);
@@ -37,6 +49,12 @@
     console.log('update', msg);
   }
 
+  /**
+   * Handle model deletions sent from the server.  These are unsolicited updates
+   * caused by other users deleting models.
+   *
+   * @param {Object} msg the payload from the server
+   */
   function handleDelete(msg) {
     var kind = msg.nameSpace + '.' + msg.type,
         record = xCore.getRecordForKind(kind, msg.id);
@@ -49,12 +67,16 @@
     console.log('delete', msg);
   }
 
+  // Praise the Great Spark!  Open our websocket to the server!
   var socket = xCore.socket = Primus.connect();
 
+  // Mostly for debug purposes
   socket.on('open', function() {
     console.log('The merging is complete!');
   });
 
+  // The real work is done here
+  // Data recieved from the server is handled here
   socket.on('data', function(data) {
     if(data === 'forbidden') {
       alert('Your Session has expired.  Please log in again.');
@@ -77,6 +99,7 @@
     }
   });
 
+  // Logging, in case something asplodes
   socket.on('error', function(err) {
     console.log('We burn!');
     console.error(err);
@@ -84,13 +107,23 @@
 }());
 
 (function() {
-  enyo.kind({
+  enyo.kind({ /** @lends XM.WebsocketRequest */
     name: 'XM.WebsocketRequest',
     kind: 'enyo.Model',
     defaults: {
       method: 'GET',
       data: null
     },
+    /**
+     * @constructor
+     * WebsocketRequests encapsulate logic for conversing with the server via
+     * websockets.  They are created primarily by XM.WebsocketSource to persist
+     * models.
+     *
+     * Creating a WebsocketRequest requires two things: a `method` and `data`.
+     * `method` can be one of GET, POST, PATCH, or DELETE and `data` can be any
+     * JSON serializable object.
+     */
     constructor: function() {
       this.inherited(arguments);
 
