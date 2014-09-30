@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-
+//-*-js2-*-
+/* vim: set filetype=js : */
 // Author: Christopher Rankin
 // Copyright: 2014 Pangea Real Estate
 

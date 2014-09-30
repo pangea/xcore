@@ -131,7 +131,7 @@ var _				= require('underscore'),
 	           });
 	
 	      exec('cp -R ' + path.join(extensionDir, manifest.name ,'client/assets') +
-	           ' ' + path.join(datasourceDir, 'public/images', manifest.name),
+	           ' ' + path.join(datasourceDir, 'public', manifest.name),
 	           function (err, stdout, stderr) {
 	             if (err !== null) {
 	               logger.error(err);
