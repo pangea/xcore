@@ -363,8 +363,6 @@ io.on('connection', function(sock) {
         sock.write(response);
       });
     }
-
-    console.log(payload);
   });
 });
 
