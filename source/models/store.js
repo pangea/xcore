@@ -76,9 +76,12 @@
         throw new Error('No mergeKeys found for kind ' + record.kindName + '.');
       }
 
-      var col = new enyo.Collection(),
+      var col = new XM.Collection(),
           kinds = store.records.pk[record.kindName],
           id = record.getKey();
+
+      // set the collection to use the model kind we're trying to add
+      col.model = enyo.getPath(record.kindName);
 
       col.add(kinds[id]);
       col.merge(record);
