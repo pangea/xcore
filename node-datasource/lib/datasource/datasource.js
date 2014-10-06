@@ -6,24 +6,37 @@
       debugMode = !!X.options.datasource.debugging;
 
   module.exports = function(config) {
+    var pool= {
+          min: 2,
+          max: 20
+        },
+        conf = X._.clone(config);
+
     if(debugMode) {
-      console.log('connecting to database\n', config);
+      console.log('connecting to database\n', conf);
     }
 
     // convert xTuple style host declaration to Knex style
-    if(config.hostname && !config.host) {
-      config.host = config.hostname;
-      delete config.hostname;
+    if(conf.hostname && !conf.host) {
+      conf.host = conf.hostname;
+      delete conf.hostname;
+    }
+
+    if(conf.pool) {
+      X._.extend(pool, conf.pool);
+      delete conf.pool;
+
+      // ensure min is greater than max
+      if(pool.min > pool.max) {
+        pool.max = pool.min;
+      }
     }
 
     var DB = knex({
           client: 'pg',
-          connection: config,
+          connection: conf,
           debug: debugMode,
-          pool: {
-            min: 2,
-            max: 20
-          }
+          pool: pool
         });
 
     DB.Rest = function(method, payload, user, callback) {
