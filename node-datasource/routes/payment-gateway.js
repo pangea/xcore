@@ -3,8 +3,13 @@ var XMerchant = require('../lib/xMerchant'),
     xmerchant = new XMerchant(),
     usaepay = new UsaepayGateway();
 
-usaepay.UMkey = 'f2U9x3xqNqn7VnCE3X3H1BebG4cp4M22';
-usaepay.pin = '1234';
+//SANDBOX
+// usaepay.UMkey = 'f2U9x3xqNqn7VnCE3X3H1BebG4cp4M22';
+// usaepay.pin = '1234';
+
+//PROD
+usaepay.UMkey = 'm279q9KUFn5r5hP77NeXXhx7k67X3X4y';
+usaepay.pin = '237456';
 
 xmerchant.setGateway(usaepay);
 
@@ -21,7 +26,10 @@ exports.pay = function(req, res){
           fullName: req.body.firstName + " " + req.body.lastName,
           zip: req.body.zip,
           street: req.body.street,
-          email: req.body.email
+          street2: req.body.street2,
+          email: req.body.email,
+          city: req.body.city,
+          state: req.body.state
         }
       };
 
@@ -53,7 +61,7 @@ exports.pay = function(req, res){
     };
 
     xmerchant.addCustomer(data,function(result){
-      res.send(result.paymentId);
+      res.send(result);
     });
   } else if (req.body.recurrenceAmount == "1+" && req.body.recurrenceStart == todaysDate) {
     data.recurrence = {
@@ -62,8 +70,18 @@ exports.pay = function(req, res){
       number: "0" // Run monthly untill canceled
     };
 
+
     xmerchant.pay(data,function(result){
-      res.send(result.paymentId);
+      console.log("###############");
+      console.log(result);
+      console.log("###############");
+      var updateCust = {
+        CustNum: result.planId,
+        SendReceipt: true
+      };
+
+      xmerchant.quickUpdateCustomer(updateCust);
+      res.send(result);
     });
   } else if (req.body.recurrenceAmount == "1+" && req.body.recurrenceStart != todaysDate) {
     data.recurrence = {
@@ -73,11 +91,11 @@ exports.pay = function(req, res){
     };
 
     xmerchant.addCustomer(data,function(result){
-      res.send(result.paymentId);
+      res.send(result);
     });
   } else {
     xmerchant.pay(data,function(result){
-      res.send(result.paymentId);
+      res.send(result);
     });
   }
   
