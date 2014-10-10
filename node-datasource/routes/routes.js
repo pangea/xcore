@@ -3,7 +3,8 @@
 
 	var discoveryV1Alpha1	= require('./discovery-v1alpha1'),
 			restV1Alpha1 			= require('./rest-v1alpha1'),
-			data 							= require('./data');
+      wufooHandler      = require('./wufoo/wufoo-handler'),
+			data 							= require('./data');      
 
 
 	// DISCOVERY SERVICE
@@ -13,4 +14,6 @@
 	// DATABASE
 	exports.queryDatabase = data.queryDatabase;
 
+  // WUFOO
+  exports.wufoo_handler = wufooHandler;
 }());

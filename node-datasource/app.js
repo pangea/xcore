@@ -195,6 +195,9 @@ var auth = require(X.options.datasource.authentication);
 //app.use('/:org/api/v1alpha1/resources/:model', routes.rest_v1alpha1);
 //app.use('/:org/api/v1alpha1/resources/*', routes.rest_v1alpha1);
 
+// WUFOO WEBHOOK
+app.post('/wufoo', routes.wufoo_handler.process);
+
 app.use('/login', auth({
                     successRedirect: '/app',
                     failureRedirect: '/?fail'
