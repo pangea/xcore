@@ -9,5 +9,3 @@ npm-debug.log
 scripts/private
 scripts/lib/temp_query*
 node-datasource/lib/private
-node-datasource/public/*
-lib/extensions/*

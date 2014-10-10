@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-
+//-*-js2-*-
+/* vim: set filetype=js : */
 // Author: Christopher Rankin
 // Copyright: 2014 Pangea Real Estate
 
@@ -9,6 +10,7 @@ var _             = require('underscore'),
     path          = require('path'),
     args          = require('minimist')(process.argv.slice(2)),
     buildDatabase = require('./lib/xcore/database').buildDatabase,
+    unregister    = require('./lib/xcore/database').unregister,
     buildClient   = require('./lib/xcore/client').buildClient,
     xTest         = require('./lib/xcore/test'),
     extension     = require('./lib/xcore/extension'),
@@ -58,6 +60,10 @@ switch(commands.shift()) {
 
     break;
 
+  case 'unregister':
+   unregister(flags); 
+   break;
+
   case 'test':
     var toTest = commands.shift() || 'all';
 
@@ -69,7 +75,7 @@ switch(commands.shift()) {
     break;
 
   case 'new':
-		var type = commands.shit(),
+		var type = commands.shift(),
   	    name = commands.shift();
   	
   	switch(type) {

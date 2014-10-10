@@ -14,9 +14,23 @@
        * require a name, but some GUIs might require more.
        */
       _requiredExtensionFields: [ 'name' ],
-      _currentUser: currentUser
+      _currentUser: currentUser,
+      /**
+       * TODO: Documentation!  :D
+       */
+      settings: []
     },
     renderOnStart: false,
+    /**
+     * addSetting pushes a new setting into the array of settings.
+     * Modules implementing their own custom settings paradigm can override this
+     * method to add their own logic.
+     *
+     * @param setting the setting to push onto the array of settings
+     */
+    addSetting: function(setting) {
+      this.settings.push(setting);
+    },
     /**
      * Registers the GUI to be used by the application
      *
@@ -161,6 +175,68 @@
       }
 
       return this._currentUser;
+    },
+    getRecordForKind: function(kind, id) {
+      if(!enyo.isFunction(kind)) {
+        kind = enyo.isString(kind) && enyo.getPath(kind);
+      }
+
+      if(!kind) {
+        throw new Error('Invalid kind');
+      }
+
+      var tmp = new kind(),
+          pk = tmp.primaryKey,
+          opts = {},
+          store = tmp.store;
+
+      opts[pk] = id;
+
+      tmp.destroyLocal();  // clean up after ourselves
+
+      return store.findLocal(kind, opts);
+    },
+    findModelByKey: function(kind, key, opts) {
+      if(!enyo.isFunction(kind)) {
+        kind = enyo.isString(kind) && enyo.getPath(kind);
+      }
+
+      if(!kind) {
+        throw new Error('Invalid kind');
+      }
+
+      var tmp = new kind(),
+          searchKey = tmp.naturalKey || tmp.primaryKey,
+          searchOpts = {},
+          model;
+
+      if(!searchKey) {
+        throw new Error(tmp.kindName + ' has neither a natural or primary key');
+      }
+
+      searchOpts[searchKey] = key;
+
+      model = tmp.store.findLocal(tmp.kindName, searchOpts);
+
+      if(!model) {
+        tmp.setKey(key);
+        tmp.fetch(opts);
+      } else {
+        tmp.destroyLocal();
+        enyo.asyncMethod(this, function() {
+          opts.success && opts.success(model);
+        });
+      }
+    },
+    /**
+     * resize is a convenience function for forcing a resize of everything on
+     * the screen.  There are a couple of cases where triggering a resize on a
+     * specific object doesn't work or finding the correct object to call it on
+     * is non-trivial.  This allows you to quickly force a full screen refresh
+     * of all Enyo objects that draw themselves based on the size of the screen.
+     */
+    resize: function() {
+      window.dispatchEvent(new Event('resize'));
     }
   });
 

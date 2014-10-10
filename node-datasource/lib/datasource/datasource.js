@@ -6,13 +6,37 @@
       debugMode = !!X.options.datasource.debugging;
 
   module.exports = function(config) {
+    var pool= {
+          min: 2,
+          max: 20
+        },
+        conf = X._.clone(config);
+
     if(debugMode) {
-      console.log('connecting to database\n', config);
+      console.log('connecting to database\n', conf);
     }
+
+    // convert xTuple style host declaration to Knex style
+    if(conf.hostname && !conf.host) {
+      conf.host = conf.hostname;
+      delete conf.hostname;
+    }
+
+    if(conf.pool) {
+      X._.extend(pool, conf.pool);
+      delete conf.pool;
+
+      // ensure min is greater than max
+      if(pool.min > pool.max) {
+        pool.max = pool.min;
+      }
+    }
+
     var DB = knex({
           client: 'pg',
-          connection: config,
-          debug: debugMode
+          connection: conf,
+          debug: debugMode,
+          pool: pool
         });
 
     DB.Rest = function(method, payload, user, callback) {
@@ -27,6 +51,11 @@
           console.log('invalid query\n',payload.query);
         }
         return callback(query.getErrors());
+      }
+
+      if(method == 'PATCH') {
+        payload.patches = payload.data;
+        delete payload.data;
       }
 
       DB.transaction(function(trans) {
@@ -49,6 +78,33 @@
           callback({ message: error.message, detail: error.detail, stack: error.stack.split('\n') });
         }
       );
+    };
+
+    DB.Listen = function(channel, handler) {
+      DB.client.acquireConnection().then(function(conn) {
+        conn.on('notification', function(msg) {
+          var payload = msg.payload;
+
+          try {
+            payload = JSON.parse(payload);
+          } catch(e) {
+            // payload isn't JSON.  Nothing to do here but squelch the error.
+          } finally {
+            handler(payload);
+          }
+        });
+
+        conn.query("LISTEN " + channel);
+        X.log("Listening for notifications on the ", channel, " channel for ", DB.client.database());
+      });
+    };
+
+    DB.Notify = function(channel, data) {
+      if(_.isObject(data)) {
+        data = JSON.stringify(data);
+      }
+
+      DB.raw("NOTIFY %@, $notify$%@$notify$".f(channel, data)).exec();
     };
 
     return DB;

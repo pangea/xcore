@@ -14,7 +14,7 @@ var _				= require('underscore'),
       datasourceDir = path.join(__dirname, '../../../node-datasource');
 
   var getExtensionManifests = function() {
-	  var extensionDirs = fs.readdirSync(extensionDir),
+	  var extensionDirs = _.without(fs.readdirSync(extensionDir), '.gitignore'),
 	      manifests = {};
 	
 	  _.each(extensionDirs, function(dir, idx, dirs) {
@@ -39,27 +39,38 @@ var _				= require('underscore'),
 	
 	var copyApplicationCode = function(callback) {
 	  logger.info('Generating tools package.');
-	  // TODO: Better way to load tools
-	  var toolsPackage = 'enyo.depends(\n';
-	  toolsPackage += '"' + path.join(__dirname, '../../../node_modules/underscore/underscore-min.js') + '"';
-	  toolsPackage += '\n);';
-	
-	  fs.writeFileSync(path.join(enyoDir, 'source/tools/package.js'), toolsPackage);
+    var browserify   = require('browserify')(),
+        toolsFile = path.join(__dirname, '../../../lib/tools/browserify/externals.js'),
+	      toolsPackage = 'enyo.depends(\n' +
+          '"' + toolsFile + '"' +
+          '\n);';
 
-    // TODO: This is a fucking awful way of doing this, but it works for now.
-    // NOTE: We can probably change the bootplate to make this less terrible.
-    //       E.G. we can set some kind of obvious, should-be-changed token in
-    //            the package.js file it contains and then write whatever dirs
-    //            we need as a kind of spin up task?
-	  logger.info('Copying application code into client.');
-    // readFileSync normally returns a Buffer.  We want a String.
-    var appPackage = fs.readFileSync(path.join(enyoDir, 'source/package.js')).toString();
-    // Avoid unnecessary disk IO, if possible
-    if(appPackage.indexOf('app.js') >= 0) {
-      appPackage = appPackage.replace('app.js', appDir);
-      fs.writeFileSync(path.join(enyoDir, 'source/package.js'), appPackage);
-    }
-    copyExtensionCode(callback);
+    browserify.require(
+      path.join(__dirname, '../../../lib/tools/browserify/npm_modules.js'),
+      { expose: 'externals' }
+    );
+
+    browserify.bundle(function(err, buff) {
+      fs.writeFileSync(toolsFile, buff);
+
+	    fs.writeFileSync(path.join(enyoDir, 'source/tools/package.js'), toolsPackage);
+
+	    logger.info('Copying application code into client.');
+      // TODO: This is a fucking awful way of doing this, but it works for now.
+      // NOTE: We can probably change the bootplate to make this less terrible.
+      //       E.G. we can set some kind of obvious, should-be-changed token in
+      //            the package.js file it contains and then write whatever dirs
+      //            we need as a kind of spin up task?
+      // readFileSync normally returns a Buffer.  We want a String.
+      var appPackage = fs.readFileSync(path.join(enyoDir, 'source/package.js')).toString();
+      // Avoid unnecessary disk IO, if possible
+      if(appPackage.indexOf('app.js') >= 0) {
+        appPackage = appPackage.replace('app.js', appDir);
+        fs.writeFileSync(path.join(enyoDir, 'source/package.js'), appPackage);
+      }
+
+      copyExtensionCode(callback);
+    });
 	};
 
 	/** Copies client code from the extensions into lib/client. */
@@ -120,7 +131,7 @@ var _				= require('underscore'),
 	           });
 	
 	      exec('cp -R ' + path.join(extensionDir, manifest.name ,'client/assets') +
-	           ' ' + path.join(datasourceDir, 'public/images', manifest.name),
+	           ' ' + path.join(datasourceDir, 'public', manifest.name),
 	           function (err, stdout, stderr) {
 	             if (err !== null) {
 	               logger.error(err);

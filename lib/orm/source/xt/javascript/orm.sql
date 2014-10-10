@@ -680,12 +680,16 @@ select xt.install_js('XT','Orm','xtuple', $$
             join = join.concat(orm.table, ' ', tblAlias, ' on ');
             for (i = 0; i < orm.relations.length; i++) {
               rel = orm.relations[i];
-              inverse = rel.inverse ? rel.inverse : 'id';
-              for (n = 0; n < base.properties.length; n++) {
-                if(base.properties[n].name === inverse) {
-                  var obj = base.properties[n].attr ? base.properties[n].attr : base.properties[n].toOne;
-                  value = 't1.' + obj.column;
-                  break;
+              if(rel.value) {
+                value = isNaN(rel.value - 0) ? "'" + rel.value + "'" : rel.value;
+              } else {
+                inverse = rel.inverse ? rel.inverse : 'id';
+                for (n = 0; n < base.properties.length; n++) {
+                  if(base.properties[n].name === inverse) {
+                    var obj = base.properties[n].attr || base.properties[n].toOne;
+                    value = 't1.' + obj.column;
+                    break;
+                  }
                 }
               }
               condition = tblAlias + '.' + rel.column + ' = ' + value;

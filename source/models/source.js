@@ -2,47 +2,133 @@
 /*global io, enyo*/
 (function() {
   "use strict";
-  var socket = xCore.socket = io('/clientsock');
 
-  socket.on('session expired', function(err) {
-    alert('You session has expired.  Please log in again.');
-    location.replace('/');
-  });
-
-  socket.on('server ready', function(msg) {
-    console.log(msg);
-  });
-
-  socket.on('response', function(msg) {
+  /**
+   * Handle responses to requests from the server.
+   *
+   * @param {Object} msg the payload returned from the server
+   */
+  function handleResponse(msg) {
     var req = enyo.store.getRecord(msg.reqId);
+
     if(msg.error) {
-      console.error(msg.error);
-      req.fail(msg.error);
+      enyo.asyncMethod(req, 'fail', msg.error);
     } else {
-      console.log(msg.data);
-      req.success(msg.data);
+      enyo.asyncMethod(req, 'success', msg.data);
+    }
+  }
+
+  /**
+   * Handle model updates from the server.  These are unsolicited updates caused
+   * by other users modifying models.
+   *
+   * @param {Object} msg the payload sent by the server
+   */
+  function handleUpdate(msg) {
+    var kind = msg.nameSpace + '.' + msg.type,
+        record = xCore.getRecordForKind(kind, msg.id);
+
+    if(record) {
+      try {
+        record.setObject(record.parse(msg.data));
+      } catch(e) {
+        console.warn(e);
+        console.info(
+          "Potentially caused by receiving an update triggered by a model this client updated"
+        );
+      }
+    } else if(!msg.data.patches) {
+      // not really sure how to handle patches to objects we don't have yet.
+
+      record = enyo.store.createRecord(kind, msg.data);
+      record.set(record.primaryKey, msg.id);
+
+      enyo.Signals.send('onModelCreated', { kind: kind, id: msg.id });
+    }
+
+    console.log('update', msg);
+  }
+
+  /**
+   * Handle model deletions sent from the server.  These are unsolicited updates
+   * caused by other users deleting models.
+   *
+   * @param {Object} msg the payload from the server
+   */
+  function handleDelete(msg) {
+    var kind = msg.nameSpace + '.' + msg.type,
+        record = xCore.getRecordForKind(kind, msg.id);
+
+    // If we don't have the record, we don't have to do anything!
+    if(record) {
+      record.destroyLocal();
+    }
+
+    console.log('delete', msg);
+  }
+
+  // Praise the Great Spark!  Open our websocket to the server!
+  var socket = xCore.socket = Primus.connect();
+
+  // Mostly for debug purposes
+  socket.on('open', function() {
+    console.log('The merging is complete!');
+  });
+
+  // The real work is done here
+  // Data recieved from the server is handled here
+  socket.on('data', function(data) {
+    if(data === 'forbidden') {
+      alert('Your Session has expired.  Please log in again.');
+      location.replace('/logout');
+      return; // for sanity
+    }
+
+    switch(data.handler) {
+      case "response":
+        handleResponse(data);
+        break;
+      case "update":
+        handleUpdate(data);
+        break;
+      case "delete":
+        handleDelete(data);
+        break;
+      default:
+        throw new Error('unknown handler: ' + data.handler);
     }
   });
 
-  socket.on('update', function(msg) {
-    // not used right now.  Will be used for unsolicited model updates from
-    // the server
-    console.log(msg);
+  // Logging, in case something asplodes
+  socket.on('error', function(err) {
+    console.log('We burn!');
+    console.error(err);
   });
 }());
 
 (function() {
-  enyo.kind({
+  enyo.kind({ /** @lends XM.WebsocketRequest */
     name: 'XM.WebsocketRequest',
     kind: 'enyo.Model',
     defaults: {
       method: 'GET',
       data: null
     },
+    /**
+     * @constructor
+     * WebsocketRequests encapsulate logic for conversing with the server via
+     * websockets.  They are created primarily by XM.WebsocketSource to persist
+     * models.
+     *
+     * Creating a WebsocketRequest requires two things: a `method` and `data`.
+     * `method` can be one of GET, POST, PATCH, or DELETE and `data` can be any
+     * JSON serializable object.
+     */
     constructor: function() {
       this.inherited(arguments);
 
       var payload = {
+            method: this.get('method'),
             reqId: this.euid
           },
           data = this.get('data');
@@ -60,7 +146,7 @@
       }
 
       payload.data = data;
-      xCore.socket.emit(this.get('method'), payload);
+      xCore.socket.write(payload);
     },
     success: function() {
       throw new Error("Not implemented.  You must provide a `success` function when creating a WebsocketRequest");
@@ -142,18 +228,18 @@
     },
     fetch: function(record, options) {
       // If the record has an id, we don't need to generate a query for it
-      if(!record.get('id')) {
+      if(!(record.getKey && record.getKey())) {
         options.query = this.generateQuery(record, options);
       }
       this.setupRequest(record, options);
       this.makeRequest(options);
     },
     commit: function(record, options) {
-      options.method = 'POST';
+      options.method = (record.isNew ? 'POST' : 'PATCH');
       this.setupRequest(record, options);
       this.makeRequest(options);
     },
-    delete: function(record, options) {
+    destroy: function(record, options) {
       options.method = 'DELETE';
       this.setupRequest(record, options);
       this.makeRequest(options);
@@ -162,29 +248,37 @@
      * Generates a Query from a record and, optionally, some additional options
      * @see node-datasource/lib/query/xtget_query.js
      *
-     * @param {Object} record record to generate a query for
-     * @param {Object} record.attributes these will be converted into the query
-     * @param {Object} [options] additional options to attach to the query
-     * @param {Object} [options.orderBy] attributes to order by
-     * @param {Number} [options.rowLimit] total number of records to return
-     * @param {Number} [options.rowOffset] number of rows to skip
-     * @param {Boolean} [count] Only return the number of rows, not their contents
+     * @param {Object}  record              record to generate a query for
+     * @param {Object}  [record.attributes] these will be converted into the
+     *                                      query
+     * @param {Object}  [options]           additional options to attach to the
+     *                                      query
+     * @param {Object}  [options.orderBy]   attributes to order by
+     * @param {Number}  [options.rowLimit]  total number of records to return
+     * @param {Number}  [options.rowOffset] number of rows to skip
+     * @param {Boolean} [options.count]     Only return the number of rows, not
+     *                                      their contents
      *
      * @return {Object} the query object, if one was creatable
      */
     generateQuery: function(record, options) {
-      var query = {};
+      var query = {},
+          queryKeys = ['orderBy', 'rowLimit', 'rowOffset', 'count', 'parameters'];
 
       if(!record.attributes && !options) { return; }
 
       if(options) {
-        query = _.pick(options, 'orderBy', 'rowLimit', 'rowOffset', 'count', 'parameters');
+        query = enyo.only(queryKeys, options, true);
+        enyo.forEach(queryKeys, function(key) {
+          delete options[key];
+        });
       }
 
       if(record.attributes) {
+        // Combine any record attributes with the options passed in
         query.parameters = _.chain(query.parameters)
           .union(
-            _.map(record.attributes, function(value, attribute) {
+            _.map(record.raw(), function(value, attribute) {
               return { attribute: attribute, operator: '=', value: value };
             })
           )
@@ -197,35 +291,44 @@
         }
       }
 
-      if(_.keys(query).length === 0) { return; }
+      if(enyo.keys(query).length === 0) { return; }
 
       return query;
     },
     setupRequest: function(record, options) {
-      var model = (record instanceof enyo.Collection) ? record.model : record.kindName,
-          parts = model.split('.');
+      var isCollection = record instanceof enyo.Collection,
+          model = (isCollection) ? record.model.prototype : record,
+          parts = model.kindName.split('.');
 
       _.extend(options, {
         nameSpace: parts[0],
         type: parts[1]
       });
 
-      if(record.get('id')) {
-        options.id = record.get('id');
+      if(!isCollection && options.method !== 'POST') {
+        options.id = record.getKey();
+      }
+
+      if(options.method == 'POST') {
+        options.data = enyo.except([record.primaryKey], record.raw());
+      }
+
+      if(options.method == 'PATCH') {
+        options.data = jiff.diff(record.previous, record.raw());
       }
 
       // options.query = this.generateQuery(record);
     },
     makeRequest: function(options) {
-      var properties = _.pick(options, 'success', 'fail'),
-          attributes = _.pick(options, 'method');
-      options = _.omit(options, 'success', 'fail', 'method');
+      var properties = enyo.only(['success', 'fail'], options, true),
+          attributes = enyo.only(['method'], options, true);
+      options = enyo.except(['success', 'fail', 'method', 'strategy'], options);
       attributes.data = options;
-      console.log(attributes, properties);
 
       new XM.WebsocketRequest(attributes, properties);
     }
   });
 
   enyo.store.addSources({ websocket: 'XM.WebsocketSource' });
+  XM.store.addSources({ websocket: 'XM.WebsocketSource' });
 }());
