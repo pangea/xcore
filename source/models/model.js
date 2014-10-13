@@ -32,8 +32,13 @@
       for(i = 0; (key = relKeys[i]); i++) {
         field = data[key];
         if(field) {
+          rel = this.relations[key];
+
           // Thankfully, this works for both models AND collections
-          rel = enyo.getPath(this.relations[key]);
+          if((typeof rel) == 'string') {
+            rel = enyo.getPath(rel);
+          }
+
           data[key] = new rel(field);
         }
       }
