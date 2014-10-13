@@ -314,7 +314,7 @@
       }
 
       if(options.method == 'PATCH') {
-        options.data = jiff.diff(record.previous, record.raw());
+        options.data = jsonpatch.compare(record.previous, record.raw());
       }
 
       // options.query = this.generateQuery(record);

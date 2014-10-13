@@ -22,7 +22,7 @@
       // This means our data is actually an update to the model.  These come down
       // as JSON Patches.  So, we apply the patch and return that insead
       if(data.patches) {
-        data = jiff.patch(data.patches, this.dirty ? this.raw() : this.previous);
+        data = jsonpatch.apply(this.dirty ? this.raw() : this.previous, data.patches);
       }
 
       // Process any relations listed on the model

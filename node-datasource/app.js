@@ -1,7 +1,7 @@
 /*jshint node:true */
 /*global require, exports, __dirname, _, jsonpatch, SYS, XT, X*/
 _ = require("underscore");
-jsonpatch = require("json-patch");
+jsonpatch = require("fast-json-patch");
 SYS = {};
 XT = { };
 
