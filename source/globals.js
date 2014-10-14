@@ -1,7 +1,7 @@
     // External libraries
 var externals = require('externals'),
     _ = externals._,
-    jiff = externals.jiff,
+    jsonpatch = externals.jsonpatch,
 
     // Internal globals
     xCore = {},

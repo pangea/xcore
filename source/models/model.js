@@ -22,7 +22,7 @@
       // This means our data is actually an update to the model.  These come down
       // as JSON Patches.  So, we apply the patch and return that insead
       if(data.patches) {
-        data = jiff.patch(data.patches, this.dirty ? this.raw() : this.previous);
+        data = jsonpatch.apply(this.dirty ? this.raw() : this.previous, data.patches);
       }
 
       // Process any relations listed on the model
@@ -32,8 +32,13 @@
       for(i = 0; (key = relKeys[i]); i++) {
         field = data[key];
         if(field) {
+          rel = this.relations[key];
+
           // Thankfully, this works for both models AND collections
-          rel = enyo.getPath(this.relations[key]);
+          if((typeof rel) == 'string') {
+            rel = enyo.getPath(rel);
+          }
+
           data[key] = new rel(field);
         }
       }
