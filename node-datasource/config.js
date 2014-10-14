@@ -44,7 +44,7 @@ newcap:true, noarg:true, regexp:true, undef:true, strict:true, trailing:true, wh
 
       // This is the path to the authentication plugin you're using.
       // For more information, see app.js:155.
-      authentication: "../lib/extensions/authentication",
+      authentication: "../lib/extensions/pcore_node_auth",
 
       // these properties are dynamically registered with the
       // node discovery service
