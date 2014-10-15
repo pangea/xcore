@@ -24,8 +24,8 @@ exports.process = function(req , res) {
   }
 
   switch (formId) {
-    case "test-form":
-      WufooHelpers.address(keyValuePairs);
+    case "test-form-zhzmv5v1km1881":
+      WufooHelpers.test(keyValuePairs);
       break;
     default:
       console.log(keyValuePairs);
