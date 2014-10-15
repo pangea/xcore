@@ -1,3 +1,4 @@
 [submodule "enyo"]
   path=lib/client
   url=git://github.com/pangea/bootplate.git
+  branch=bootstraped
