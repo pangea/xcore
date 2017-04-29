@@ -17,7 +17,7 @@ read the README.md file located in the xcore-vagrant repository.
 Testing
 -------
 **xCore** is tested using [TravisCI](http://docs.travis-ci.com/user/build-configuration/)
-and the [Mocha testing framework](http://visionmedia.github.io/mocha/)
+and the [Mocha testing framework](http://mochajs.org/)
 
 Deployment
 ----------
